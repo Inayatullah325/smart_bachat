@@ -1,0 +1,2 @@
+-keep class com.syncfusion.** { *; }
+-dontwarn com.syncfusion.**
