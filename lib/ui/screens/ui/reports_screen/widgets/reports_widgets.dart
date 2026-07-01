@@ -235,6 +235,7 @@ class _MonthExpandableCardState extends State<MonthExpandableCard> {
                                 widget.colorMapper(cat.name, index),
                             dataLabelSettings: const DataLabelSettings(
                               isVisible: true,
+                              labelPosition: ChartDataLabelPosition.outside,
                             ),
                           ),
                         ],

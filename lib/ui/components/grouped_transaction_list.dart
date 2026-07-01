@@ -1,60 +1,97 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import '../../../../core/constant_colors.dart';
-import '../../../../database_model_class/expense_data_model.dart';
-import 'package:smart_bachat/providers/transaction_provider.dart';
-import 'package:smart_bachat/ui/components/transaction_item.dart';
-
 import 'package:smart_bachat/core/app_utils.dart';
-import 'package:smart_bachat/ui/components/dialogs/confirmation_dialog.dart';
-import 'package:smart_bachat/ui/components/dialogs/update_expense_dialog.dart';
 
-class AllExpensesScreen extends StatefulWidget {
-  const AllExpensesScreen({super.key});
+/// Shared accordion list for income/expense screens.
+/// Groups transactions by current month, this year, and previous years.
+class GroupedTransactionList<T> extends StatefulWidget {
+  const GroupedTransactionList({
+    super.key,
+    required this.items,
+    required this.getDate,
+    required this.getAmount,
+    required this.itemBuilder,
+  });
+
+  final List<T> items;
+  final String Function(T item) getDate;
+  final int Function(T item) getAmount;
+  final Widget Function(BuildContext context, T item, int index) itemBuilder;
 
   @override
-  State<AllExpensesScreen> createState() => _AllExpensesScreenState();
+  State<GroupedTransactionList<T>> createState() =>
+      _GroupedTransactionListState<T>();
 }
 
-class _AllExpensesScreenState extends State<AllExpensesScreen> {
-  // Expanded state trackers
-  final Set<String> _expandedMonthKeys = {}; // "yyyy-MM"
-  final Set<int> _expandedYears = {}; // year numbers for prev-year section
+class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
+  final Set<String> _expandedMonthKeys = {};
+  final Set<int> _expandedYears = {};
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TransactionProvider>(
-        context,
-        listen: false,
-      ).fetchAllExpenses();
-    });
-  }
+  Widget build(BuildContext context) {
+    final grouped = AppUtils.groupByMonth(widget.items, widget.getDate);
+    final now = DateTime.now();
+    final currentKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final currentYearPrefix = '${now.year}-';
 
-  Map<String, List<ExpenseDataModel>> _groupByMonth(
-    List<ExpenseDataModel> list,
-  ) {
-    final Map<String, List<ExpenseDataModel>> map = {};
-    for (final item in list) {
-      final parts = item.date.split('-'); // dd-MM-yyyy
-      if (parts.length == 3) {
-        final key = '${parts[2]}-${parts[1]}'; // yyyy-MM
-        map.putIfAbsent(key, () => []).add(item);
+    final List<String> currentMonthKeys = [];
+    final List<String> currentYearKeys = [];
+    final Map<int, List<String>> prevYearsMap = {};
+
+    for (final key in grouped.keys) {
+      if (key == currentKey) {
+        currentMonthKeys.add(key);
+      } else if (key.startsWith(currentYearPrefix)) {
+        currentYearKeys.add(key);
+      } else {
+        final year = int.tryParse(key.split('-')[0]) ?? 0;
+        prevYearsMap.putIfAbsent(year, () => []).add(key);
       }
     }
-    final sorted = map.keys.toList()..sort((a, b) => b.compareTo(a));
-    return {for (var k in sorted) k: map[k]!};
+
+    final sortedPrevYears = prevYearsMap.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final List<Widget> children = [];
+
+    if (currentMonthKeys.isNotEmpty) {
+      children.add(_sectionLabel('🌟 Current Month'));
+      for (final key in currentMonthKeys) {
+        children.add(_monthAccordion(key, grouped[key]!, _monthTheme));
+      }
+    }
+
+    if (currentYearKeys.isNotEmpty) {
+      children.add(_sectionLabel('📅 This Year (${now.year})'));
+      for (final key in currentYearKeys) {
+        children.add(_monthAccordion(key, grouped[key]!, _monthTheme));
+      }
+    }
+
+    if (prevYearsMap.isNotEmpty) {
+      children.add(_sectionLabel('🗂️ Previous Years'));
+      for (final year in sortedPrevYears) {
+        final monthKeys = prevYearsMap[year]!;
+        final yearTotal = monthKeys.fold<int>(0, (sum, key) {
+          return sum +
+              grouped[key]!.fold<int>(0, (s, item) => s + widget.getAmount(item));
+        });
+        children.add(_yearAccordion(year, monthKeys, grouped, yearTotal));
+      }
+    }
+
+    return ListView(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+      children: children,
+    );
   }
 
-  Widget _sectionLabel(String text, Color textColor, Color bgColor) {
+  Widget _sectionLabel(String text) {
     return Container(
       margin: EdgeInsets.only(bottom: 1.h, top: 0.5.h),
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: const Color(0xffE0F4FC),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -62,7 +99,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w800,
-          color: textColor,
+          color: const Color(0xff0E7BB0),
           letterSpacing: 0.3,
         ),
       ),
@@ -72,7 +109,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
   Widget _yearAccordion(
     int year,
     List<String> monthKeys,
-    Map<String, List<ExpenseDataModel>> grouped,
+    Map<String, List<T>> grouped,
     int yearTotal,
   ) {
     final isExpanded = _expandedYears.contains(year);
@@ -92,7 +129,6 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
       ),
       child: Column(
         children: [
-          // Year Header
           InkWell(
             onTap: () => setState(
               () => isExpanded
@@ -117,12 +153,12 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xffE2E8F0), // slate 200
+                      color: const Color(0xffE2E8F0),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.calendar_today,
-                      color: Color(0xff475569), // slate 600
+                      color: Color(0xff475569),
                       size: 18,
                     ),
                   ),
@@ -136,7 +172,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xff1E293B), // slate 800
+                            color: Color(0xff1E293B),
                           ),
                         ),
                         Text(
@@ -144,7 +180,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xff475569), // slate 600
+                            color: Color(0xff475569),
                           ),
                         ),
                       ],
@@ -155,7 +191,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                     duration: const Duration(milliseconds: 300),
                     child: const Icon(
                       Icons.expand_more_rounded,
-                      color: Color(0xff1E293B), // slate 800
+                      color: Color(0xff1E293B),
                       size: 26,
                     ),
                   ),
@@ -163,21 +199,21 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
               ),
             ),
           ),
-          // Expandable Month Cards
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
               padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
               child: Column(
-                children: monthKeys.map((k) {
-                  final items = grouped[k]!;
-                  return _monthAccordion(
-                    k,
-                    items,
-                    _prevYearTheme,
-                    compact: true,
-                  );
-                }).toList(),
+                children: monthKeys
+                    .map(
+                      (key) => _monthAccordion(
+                        key,
+                        grouped[key]!,
+                        _monthTheme,
+                        compact: true,
+                      ),
+                    )
+                    .toList(),
               ),
             ),
             crossFadeState: isExpanded
@@ -192,12 +228,12 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
 
   Widget _monthAccordion(
     String key,
-    List<ExpenseDataModel> items,
+    List<T> items,
     _MonthTheme theme, {
     bool compact = false,
   }) {
     final isExpanded = _expandedMonthKeys.contains(key);
-    final total = items.fold<int>(0, (s, e) => s + e.expense);
+    final total = items.fold<int>(0, (sum, item) => sum + widget.getAmount(item));
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -207,7 +243,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: theme.accentColor.withOpacity(0.12),
+            color: theme.accentColor.withOpacity(compact ? 0.1 : 0.12),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -215,7 +251,6 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
       ),
       child: Column(
         children: [
-          // Month Header
           InkWell(
             onTap: () => setState(
               () => isExpanded
@@ -286,14 +321,16 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
               ),
             ),
           ),
-          // Expense entries using SlidableTransactionItem
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
               padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
               child: Column(
                 children: items.asMap().entries.map((entry) {
-                  return _buildItemWidget(entry.value, entry.key);
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 1.h),
+                    child: widget.itemBuilder(context, entry.value, entry.key),
+                  );
                 }).toList(),
               ),
             ),
@@ -307,7 +344,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     );
   }
 
-  static const _currentMonthTheme = _MonthTheme(
+  static const _monthTheme = _MonthTheme(
     headerBg: Color(0xffEEF2F5),
     textPrimary: Color(0xff1E293B),
     textSecondary: Color(0xff64748B),
@@ -315,185 +352,8 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     iconColor: Color(0xff475569),
     accentColor: Color(0xff475569),
   );
-
-  static const _currentYearTheme = _MonthTheme(
-    headerBg: Color(0xffEEF2F5),
-    textPrimary: Color(0xff1E293B),
-    textSecondary: Color(0xff64748B),
-    badgeBg: Color(0xffDDE3EA),
-    iconColor: Color(0xff475569),
-    accentColor: Color(0xff475569),
-  );
-
-  static const _prevYearTheme = _MonthTheme(
-    headerBg: Color(0xffEEF2F5),
-    textPrimary: Color(0xff1E293B),
-    textSecondary: Color(0xff64748B),
-    badgeBg: Color(0xffDDE3EA),
-    iconColor: Color(0xff475569),
-    accentColor: Color(0xff475569),
-  );
-
-  Widget _buildItemWidget(ExpenseDataModel transaction, int index) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 1.h),
-      child: SlidableTransactionItem(
-        transaction: transaction,
-        index: index,
-        onTap: () {},
-        onDelete: () {
-          showConfirmationDialog(
-            context: context,
-            message: 'Do you really want to delete this expense?',
-            onConfirm: () async {
-              await Provider.of<TransactionProvider>(
-                context,
-                listen: false,
-              ).deleteExpense(transaction.id!);
-              Fluttertoast.showToast(
-                msg: "Record Deleted",
-                backgroundColor: AppColors.color_red,
-              );
-            },
-          );
-        },
-        onUpdate: () {
-          showConfirmationDialog(
-            context: context,
-            message: 'Do you want to edit this expense?',
-            onConfirm: () async {
-              showUpdateExpenseDialog(
-                context: context,
-                id: transaction.id!,
-                categoryName: transaction.name,
-                date: transaction.date,
-                expense: transaction.expense,
-                onUpdate: (id, model) async {
-                  await Provider.of<TransactionProvider>(
-                    context,
-                    listen: false,
-                  ).updateExpense(id, model);
-                },
-                successMessage: 'Expense updated successfully',
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final transactionProvider = Provider.of<TransactionProvider>(context);
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          'All Expenses',
-          style: TextStyle(
-            fontSize: 19.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: AppColors.primaryColor,
-      ),
-      body: transactionProvider.expenses.isEmpty
-          ? Center(
-              child: Text(
-                'No data available.',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                ),
-              ),
-            )
-          : _buildExpenseList(transactionProvider.expenses),
-    );
-  }
-
-  Widget _buildExpenseList(List<ExpenseDataModel> expenses) {
-    final grouped = _groupByMonth(expenses);
-    final now = DateTime.now();
-    final currentKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
-    final currentYearPrefix = '${now.year}-';
-
-    final List<String> currentMonthKeys = [];
-    final List<String> currentYearKeys = [];
-    final Map<int, List<String>> prevYearsMap = {};
-
-    for (final key in grouped.keys) {
-      if (key == currentKey) {
-        currentMonthKeys.add(key);
-      } else if (key.startsWith(currentYearPrefix)) {
-        currentYearKeys.add(key);
-      } else {
-        final year = int.tryParse(key.split('-')[0]) ?? 0;
-        prevYearsMap.putIfAbsent(year, () => []).add(key);
-      }
-    }
-
-    final sortedPrevYears = prevYearsMap.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
-
-    final List<Widget> widgets = [];
-
-    // ── Current Month Section ──
-    if (currentMonthKeys.isNotEmpty) {
-      widgets.add(
-        _sectionLabel(
-          '🌟 Current Month',
-          const Color(0xff0E7BB0), // primary dark
-          const Color(0xffE0F4FC), // primary light tint
-        ),
-      );
-      for (final k in currentMonthKeys) {
-        widgets.add(_monthAccordion(k, grouped[k]!, _currentMonthTheme));
-      }
-    }
-
-    // ── This Year Section ──
-    if (currentYearKeys.isNotEmpty) {
-      widgets.add(
-        _sectionLabel(
-          '📅 This Year (${now.year})',
-          const Color(0xff0E7BB0),
-          const Color(0xffE0F4FC),
-        ),
-      );
-      for (final k in currentYearKeys) {
-        widgets.add(_monthAccordion(k, grouped[k]!, _currentYearTheme));
-      }
-    }
-
-    // ── Previous Years Section ──
-    if (prevYearsMap.isNotEmpty) {
-      widgets.add(
-        _sectionLabel(
-          '🗂️ Previous Years',
-          const Color(0xff0E7BB0),
-          const Color(0xffE0F4FC),
-        ),
-      );
-      for (final year in sortedPrevYears) {
-        final monthKeys = prevYearsMap[year]!;
-        final yearTotal = monthKeys.fold<int>(0, (sum, k) {
-          return sum + grouped[k]!.fold<int>(0, (s, e) => s + e.expense);
-        });
-        widgets.add(_yearAccordion(year, monthKeys, grouped, yearTotal));
-      }
-    }
-
-    return ListView(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      children: widgets,
-    );
-  }
 }
+
 class _MonthTheme {
   final Color headerBg;
   final Color textPrimary;
@@ -511,4 +371,3 @@ class _MonthTheme {
     required this.accentColor,
   });
 }
-

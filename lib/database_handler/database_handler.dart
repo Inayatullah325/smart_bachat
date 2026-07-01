@@ -15,7 +15,10 @@ class DatabaseHandler {
     }
 
     Directory directory = await getApplicationDocumentsDirectory();
-    String path = join(directory.path, 'smartBachat_v2.db'); // Changed DB name for fresh schema
+    String path = join(
+      directory.path,
+      'smartBachat_v2.db',
+    ); // Changed DB name for fresh schema
     _database = await openDatabase(
       path,
       version: 1,
@@ -56,15 +59,26 @@ class DatabaseHandler {
   Future<List<ExpenseDataModel>> readExpenseData() async {
     Database? db = await dataBase;
     String email = await _getUserEmail();
-    final expenseDataList = await db!.query('ExpenseTable', where: 'user_email = ?', whereArgs: [email]);
-    return expenseDataList.map((item) => ExpenseDataModel.fromMap(item)).toList();
+    final expenseDataList = await db!.query(
+      'ExpenseTable',
+      where: 'user_email = ?',
+      whereArgs: [email],
+      orderBy: 'id DESC',
+    );
+    return expenseDataList
+        .map((item) => ExpenseDataModel.fromMap(item))
+        .toList();
   }
 
   deleteExpenseData(int id) async {
     Database? db = await dataBase;
     if (db == null) return;
     String email = await _getUserEmail();
-    await db.delete('ExpenseTable', where: 'id = ? AND user_email = ?', whereArgs: [id, email]);
+    await db.delete(
+      'ExpenseTable',
+      where: 'id = ? AND user_email = ?',
+      whereArgs: [id, email],
+    );
   }
 
   updateExpenseData(int id, ExpenseDataModel expenseDataModel) async {
@@ -91,7 +105,12 @@ class DatabaseHandler {
   Future<List<IncomeDataModel>> readIncomeData() async {
     Database? db = await dataBase;
     String email = await _getUserEmail();
-    final incomeDataList = await db!.query('IncomeTable', where: 'user_email = ?', whereArgs: [email]);
+    final incomeDataList = await db!.query(
+      'IncomeTable',
+      where: 'user_email = ?',
+      whereArgs: [email],
+      orderBy: 'id DESC',
+    );
     return incomeDataList.map((item) => IncomeDataModel.fromMap(item)).toList();
   }
 
@@ -99,7 +118,11 @@ class DatabaseHandler {
     Database? db = await dataBase;
     if (db == null) return;
     String email = await _getUserEmail();
-    await db.delete('IncomeTable', where: 'id = ? AND user_email = ?', whereArgs: [id, email]);
+    await db.delete(
+      'IncomeTable',
+      where: 'id = ? AND user_email = ?',
+      whereArgs: [id, email],
+    );
   }
 
   updateIncomeData(int id, IncomeDataModel incomeDataModel1) async {
@@ -114,43 +137,6 @@ class DatabaseHandler {
     );
   }
 
-  // Fetch summarized expenses grouped by category (name)
-  Future<List<Map<String, dynamic>>> getSummarizedExpenses() async {
-    Database? db = await dataBase;
-    String email = await _getUserEmail();
-    final List<Map<String, dynamic>> result = await db!.rawQuery('''
-    SELECT name, SUM(expense) as totalExpense 
-    FROM ExpenseTable 
-    WHERE user_email = ?
-    GROUP BY name
-    ''', [email]);
-    return result;
-  }
-
-  // get last five transactions on home screen
-  Future<List<ExpenseDataModel>> readLastFiveExpenseData() async {
-    final db = await dataBase;
-    if (db == null) throw Exception('Database is not initialized');
-    String email = await _getUserEmail();
-
-    final List<Map<String, dynamic>> maps = await db.query(
-      'ExpenseTable',
-      where: 'user_email = ?',
-      whereArgs: [email],
-      orderBy: 'date DESC',
-      limit: 5,
-    );
-
-    return List.generate(maps.length, (i) {
-      return ExpenseDataModel(
-        id: maps[i]['id'] as int?,
-        name: maps[i]['name'] as String,
-        date: maps[i]['date'] as String,
-        expense: maps[i]['expense'] as int,
-      );
-    });
-  }
-
   // get last five transactions of the CURRENT MONTH ONLY
   Future<List<ExpenseDataModel>> readLastFiveCurrentMonthExpenses() async {
     final db = await dataBase;
@@ -163,10 +149,10 @@ class DatabaseHandler {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'ExpenseTable',
-      where: 'substr(date, 4, 2) = ? AND substr(date, 7, 4) = ? AND user_email = ?',
+      where:
+          'substr(date, 4, 2) = ? AND substr(date, 7, 4) = ? AND user_email = ?',
       whereArgs: [monthStr, yearStr, email],
-      orderBy: 'date DESC',
-      limit: 5,
+      orderBy: 'id DESC',
     );
 
     return List.generate(maps.length, (i) {
@@ -204,21 +190,6 @@ class DatabaseHandler {
     }
   }
 
-  // to get month wise expenses
-  Future<List<Map<String, dynamic>>> getMonthlyExpenses(int year, int month) async {
-    final db = await dataBase;
-    String email = await _getUserEmail();
-    String monthStr = month.toString().padLeft(2, '0');
-
-    List<Map<String, dynamic>> result = await db!.query(
-      'ExpenseTable',
-      where: "strftime('%Y', date) = ? AND strftime('%m', date) = ? AND user_email = ?",
-      whereArgs: [year.toString(), monthStr, email],
-    );
-
-    return result;
-  }
-
   // Get total income (All time)
   Future<int> getTotalIncome() async {
     Database? db = await dataBase;
@@ -227,7 +198,7 @@ class DatabaseHandler {
     try {
       final result = await db.rawQuery(
         'SELECT SUM(income) as total FROM IncomeTable WHERE user_email = ?',
-        [email]
+        [email],
       );
       return (result[0]['total'] as num?)?.toInt() ?? 0;
     } catch (e) {
@@ -243,27 +214,7 @@ class DatabaseHandler {
     try {
       final result = await db.rawQuery(
         'SELECT SUM(expense) as total FROM ExpenseTable WHERE user_email = ?',
-        [email]
-      );
-      return (result[0]['total'] as num?)?.toInt() ?? 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  // Get monthly income for a specific month and year
-  Future<int> getMonthlyIncome(int month, int year) async {
-    Database? db = await dataBase;
-    if (db == null) return 0;
-    String email = await _getUserEmail();
-    try {
-      final result = await db.rawQuery(
-        '''
-      SELECT SUM(income) as total 
-      FROM IncomeTable 
-      WHERE substr(date, 4, 2) = ? AND substr(date, 7, 4) = ? AND user_email = ?
-    ''',
-        [month.toString().padLeft(2, '0'), year.toString(), email],
+        [email],
       );
       return (result[0]['total'] as num?)?.toInt() ?? 0;
     } catch (e) {
@@ -312,7 +263,9 @@ class DatabaseHandler {
   }
 
   // Get summarized expenses for a specific year grouped by category
-  Future<List<Map<String, dynamic>>> getSummarizedExpensesForYear(int year) async {
+  Future<List<Map<String, dynamic>>> getSummarizedExpensesForYear(
+    int year,
+  ) async {
     Database? db = await dataBase;
     if (db == null) return [];
     String email = await _getUserEmail();
@@ -333,7 +286,10 @@ class DatabaseHandler {
   }
 
   // Get category-wise expenses for a specific month and year
-  Future<List<Map<String, dynamic>>> getCategoryExpensesForMonth(int month, int year) async {
+  Future<List<Map<String, dynamic>>> getCategoryExpensesForMonth(
+    int month,
+    int year,
+  ) async {
     Database? db = await dataBase;
     if (db == null) return [];
     String email = await _getUserEmail();
@@ -359,12 +315,15 @@ class DatabaseHandler {
     if (db == null) return [];
     String email = await _getUserEmail();
     try {
-      final result = await db.rawQuery('''
+      final result = await db.rawQuery(
+        '''
       SELECT DISTINCT substr(date, 7, 4) as year FROM ExpenseTable WHERE user_email = ?
       UNION
       SELECT DISTINCT substr(date, 7, 4) as year FROM IncomeTable WHERE user_email = ?
       ORDER BY year DESC
-    ''', [email, email]);
+    ''',
+        [email, email],
+      );
       return result
           .map((r) => int.tryParse(r['year']?.toString() ?? '') ?? 0)
           .where((y) => y > 0)
@@ -395,7 +354,10 @@ class DatabaseHandler {
   }
 
   // Update user email for all associated expenses and income
-  Future<void> updateUserEmailInDatabase(String oldEmail, String newEmail) async {
+  Future<void> updateUserEmailInDatabase(
+    String oldEmail,
+    String newEmail,
+  ) async {
     Database? db = await dataBase;
     if (db == null) return;
     await db.update(

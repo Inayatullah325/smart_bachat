@@ -65,7 +65,10 @@ class ReportsProvider with ChangeNotifier {
 
     try {
       // 1. Load current month's category summary
-      final summary = await _db.getCategoryExpensesForMonth(_currentMonth, _currentYear);
+      final summary = await _db.getCategoryExpensesForMonth(
+        _currentMonth,
+        _currentYear,
+      );
       _allTimeCategories = summary
           .map(
             (c) => CategoryExpense(
@@ -79,7 +82,10 @@ class ReportsProvider with ChangeNotifier {
       List<MonthData> currentMonths = [];
       for (int m = 1; m <= _currentMonth; m++) {
         final inc = await _db.getMonthlyIncomeForMonth(m, _currentYear);
-        final exp = await _db.getSummarizedExpensesForMonthAndYear(m, _currentYear);
+        final exp = await _db.getSummarizedExpensesForMonthAndYear(
+          m,
+          _currentYear,
+        );
         final cats = await _db.getCategoryExpensesForMonth(m, _currentYear);
 
         currentMonths.add(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:smart_bachat/core/app_utils.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:smart_bachat/database_model_class/category_expense_as_chart.dart';
@@ -15,22 +16,6 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
-  static const List<String> _monthNames = [
-    '',
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   Color _getColorForCategory(String name, int index) {
     return AppColors.getCategoryColor(name);
   }
@@ -176,13 +161,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         children: [
           _sectionTitle(
-            'Expenses Distribution (${_monthNames[provider.currentMonth]})',
+            'Expenses Distribution (${AppUtils.monthNames[provider.currentMonth]})',
           ),
           SizedBox(height: 1.h),
           _pieChart(categories),
           SizedBox(height: 3.h),
           _sectionTitle(
-            'Comparison by Category (${_monthNames[provider.currentMonth]})',
+            'Comparison by Category (${AppUtils.monthNames[provider.currentMonth]})',
           ),
           SizedBox(height: 1.h),
           _barChart(categories),
@@ -251,7 +236,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               .map(
                 (m) => MonthExpandableCard(
                   data: m,
-                  monthNames: _monthNames,
+                  monthNames: AppUtils.monthNames,
                   colorMapper: _getColorForCategory,
                 ),
               ),
@@ -272,7 +257,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 .map(
                   (y) => YearExpandableSection(
                     yearData: provider.historyData[y]!,
-                    monthNames: _monthNames,
+                    monthNames: AppUtils.monthNames,
                     colorMapper: _getColorForCategory,
                   ),
                 ),

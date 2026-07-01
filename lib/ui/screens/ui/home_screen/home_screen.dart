@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
-import 'package:smart_bachat/database_model_class/income_data_model.dart';
-import 'package:smart_bachat/providers/home_provider.dart';
 
-import 'package:smart_bachat/ui/components/rounded_container.dart';
+import 'package:smart_bachat/providers/home_provider.dart';
 import 'package:smart_bachat/ui/components/transaction_item.dart';
 import 'package:smart_bachat/ui/screens/ui/all_categories_screen/all_categories_screen.dart';
-import '../../../../database_model_class/expense_data_model.dart';
-import '../navigation_drawer/navigation_drawer.dart';
+import 'package:smart_bachat/ui/screens/ui/all_expenses_screen/all_expenses_screen.dart';
+import 'package:smart_bachat/ui/screens/ui/navigation_drawer/navigation_drawer.dart';
+
+import 'package:smart_bachat/core/app_utils.dart';
+import 'package:smart_bachat/ui/components/dialogs/confirmation_dialog.dart';
+import 'package:smart_bachat/ui/components/dialogs/update_expense_dialog.dart';
+import 'package:smart_bachat/ui/components/dialogs/add_income_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,839 +22,975 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  //final objAddExpense = BottomSheetAddExpenses();
-  TextEditingController addIncomeController = TextEditingController();
-  TextEditingController incomeDateController = TextEditingController();
-
-  String? categoryName;
-  DateTime? selectedDate;
-  String? formattedDate;
-  int? expense;
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
+  bool _isFABOpen = false;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<HomeProvider>(context, listen: false).fetchHomeData();
     });
   }
 
-  // variables for dynamic update/delete
-  int? _selectedId;
-  String? _selectedName;
-  String? _selectedDate;
-  int? _selectedExpense;
-
-  // List of items with icon and text for update bottom sheet
-  List<Map<String, dynamic>> allCategoriesList = [
-    {
-      'icon': Icons.fastfood_outlined,
-      'name': 'Groceries',
-      'value': 'Groceries',
-    },
-    {
-      'icon': Icons.medical_information_outlined,
-      'name': 'Health',
-      'value': 'Health',
-    },
-    {
-      'icon': Icons.menu_book_outlined,
-      'name': 'Education',
-      'value': 'Education',
-    },
-    {
-      'icon': Icons.directions_bus_outlined,
-      'name': 'Transport',
-      'value': 'Transport',
-    },
-    {
-      'icon': Icons.lightbulb_circle_outlined,
-      'name': 'Bills',
-      'value': 'Bills',
-    },
-    {'icon': Icons.apartment_outlined, 'name': 'Rent', 'value': 'Rent'},
-    {
-      'icon': Icons.credit_score_outlined,
-      'name': 'Salaries',
-      'value': 'Salaries',
-    },
-    {
-      'icon': Icons.volunteer_activism_outlined,
-      'name': 'Charity',
-      'value': 'Charity',
-    },
-    {
-      'icon': Icons.shopping_cart_outlined,
-      'name': 'Shopping',
-      'value': 'Shopping',
-    },
-    {
-      'icon': Icons.handyman_outlined,
-      'name': 'Maintenance',
-      'value': 'Maintenance',
-    },
-    {'icon': Icons.chair_outlined, 'name': 'Household', 'value': 'Household'},
-    {'icon': Icons.pets_outlined, 'name': 'Pets', 'value': 'Pets'},
-    {'icon': Icons.sports_tennis_outlined, 'name': 'Sports', 'value': 'Sports'},
-    {
-      'icon': Icons.movie_filter_outlined,
-      'name': 'Entertainment',
-      'value': 'Entertainment',
-    },
-    {'icon': Icons.card_giftcard_outlined, 'name': 'Gifts', 'value': 'Gifts'},
-    {'icon': Icons.beach_access, 'name': 'Vacations', 'value': 'Vacations'},
-    {
-      'icon': Icons.restaurant_menu_outlined,
-      'name': 'Restaurant',
-      'value': 'Restaurant',
-    },
-    {'icon': Icons.note_alt_outlined, 'name': 'Others', 'value': 'Others'},
-  ];
-
-  String? selectedValue;
-  TextEditingController updateExpenseController = TextEditingController();
-  TextEditingController updateDateController = TextEditingController();
-  final _updateExpenseFormKey = GlobalKey<FormState>();
-
-  void showExpenseDelUpBtmSht() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.25,
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Container(
-                height: MediaQuery.of(context).size.height * 0.07,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.lightBlueAccent,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    'Make Changes',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 5.w),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    showUpdateExpenseBtmSht(
-                      _selectedId!,
-                      _selectedName!,
-                      _selectedDate!,
-                      _selectedExpense!,
-                    );
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Update',
-                        style: TextStyle(
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Icon(
-                        Icons.edit,
-                        color: Colors.lightBlueAccent,
-                        size: 3.5.h,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Divider(
-                thickness: 1,
-                color: Colors.lightBlueAccent,
-                indent: 20,
-                endIndent: 20,
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 5.w),
-                child: InkWell(
-                  onTap: () async {
-                    await Provider.of<HomeProvider>(
-                      context,
-                      listen: false,
-                    ).deleteExpense(_selectedId!);
-                    Navigator.pop(context);
-                    Fluttertoast.showToast(
-                      msg: "Record Deleted",
-                      backgroundColor: Colors.red,
-                    );
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Delete',
-                        style: TextStyle(
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Icon(
-                        Icons.delete,
-                        color: Colors.lightBlueAccent,
-                        size: 3.5.h,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
-  void showUpdateExpenseBtmSht(
-    int id,
-    String catgName,
-    String updateDate,
-    int expense,
-  ) {
-    updateExpenseController.text = expense.toString();
-    updateDateController.text = updateDate;
-    selectedValue = null;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-            ),
-            child: Form(
-              key: _updateExpenseFormKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    height: MediaQuery.of(context).size.height * 0.07,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(25),
-                        topRight: Radius.circular(25),
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Update Expense',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: 1.h,
-                      horizontal: 5.w,
-                    ),
-                    child: DropdownButtonFormField<String>(
-                      hint: Text(catgName, style: TextStyle(fontSize: 15.sp)),
-                      decoration: InputDecoration(
-                        border: const OutlineInputBorder(),
-                        labelText: 'Category',
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: const BorderSide(color: Colors.blue),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Colors.lightBlueAccent,
-                          ),
-                        ),
-                      ),
-                      value: selectedValue,
-                      onChanged: (val) => setState(() => selectedValue = val),
-                      items: allCategoriesList.map((item) {
-                        return DropdownMenuItem<String>(
-                          value: item['value'],
-                          child: Row(
-                            children: [
-                              Icon(item['icon'], color: Colors.lightBlueAccent),
-                              SizedBox(width: 2.w),
-                              Text(
-                                item['name'],
-                                style: TextStyle(fontSize: 15.sp),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: 1.h,
-                      horizontal: 5.w,
-                    ),
-                    child: TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: updateExpenseController,
-                      decoration: InputDecoration(
-                        border: const OutlineInputBorder(),
-                        labelText: 'Expense',
-                        prefixIcon: const Icon(
-                          Icons.credit_score_outlined,
-                          color: Colors.blue,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: const BorderSide(color: Colors.blue),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Colors.lightBlueAccent,
-                          ),
-                        ),
-                      ),
-                      validator: (value) =>
-                          (value == null ||
-                              value.isEmpty ||
-                              int.tryParse(value) == null ||
-                              int.tryParse(value)! <= 0)
-                          ? 'Enter valid amount'
-                          : null,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () async {
-                      if (_updateExpenseFormKey.currentState!.validate()) {
-                        await Provider.of<HomeProvider>(
-                          context,
-                          listen: false,
-                        ).updateExpense(
-                          id,
-                          ExpenseDataModel(
-                            name: selectedValue ?? catgName,
-                            date: updateDate,
-                            expense: int.parse(updateExpenseController.text),
-                          ),
-                        );
-                        Navigator.pop(context);
-                        Fluttertoast.showToast(
-                          msg: "Updated successfully",
-                          backgroundColor: Colors.green,
-                        );
-                      }
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 2.h,
-                        horizontal: 5.w,
-                      ),
-                      child: Container(
-                        height: 6.h,
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Update Expense',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Function to show date picker
-  Future<void> _selectDate(BuildContext context) async {
-    DateTime now = DateTime.now();
-    // Show the date picker with restricted dates
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? now,
-      firstDate: DateTime(
-        2020,
-      ), // Allow selection from previous years (since 2020)
-      lastDate: now, // Restrict to current date (no future months/years)
-    );
-
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-        formattedDate = DateFormat('dd-MM-yyyy').format(selectedDate!);
-        incomeDateController.text = formattedDate ?? '';
-      });
-    }
-  }
-
-  // Bottom sheet to add income
-  final _formKey = GlobalKey<FormState>(); // Form key for validation
-
-  void showIncomeBtmSht(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled:
-          true, // Allows the bottom sheet to take full height and be scrollable.
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(
-              context,
-            ).viewInsets.bottom, // Adjusts for the keyboard.
-          ),
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.38,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-            ),
-            child: Form(
-              key: _formKey, // Assign the form key
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize
-                      .min, // Ensure it adjusts height based on content
-                  children: [
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.07,
-                      width: MediaQuery.of(context).size.width * 1,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(25),
-                          topRight: Radius.circular(25),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(width: 33.w),
-                          Text(
-                            'Add Income',
-                            style: TextStyle(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-
-                    // Date input field with validation
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 1.h,
-                        horizontal: 3.w,
-                      ),
-                      child: TextFormField(
-                        controller: incomeDateController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          labelText: 'Select Date',
-                          prefixIcon: const Icon(
-                            Icons.date_range_rounded,
-                            color: Colors.blue,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: const BorderSide(color: Colors.blue),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: Colors.lightBlueAccent,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a date';
-                          }
-                          return null;
-                        },
-                        onTap: () {
-                          _selectDate(context);
-                        },
-                      ),
-                    ),
-                    // Text field for income entry with validation
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 1.h,
-                        horizontal: 3.w,
-                      ),
-                      child: TextFormField(
-                        keyboardType: TextInputType.number,
-                        controller: addIncomeController,
-                        decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          labelText: 'Enter income here',
-                          prefixIcon: const Icon(
-                            Icons.account_balance_wallet,
-                            color: Colors.blue,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: const BorderSide(color: Colors.blue),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: Colors.lightBlueAccent,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a valid income';
-                          }
-                          if (int.tryParse(value) == null ||
-                              int.tryParse(value)! <= 0) {
-                            return 'Please enter a valid positive number';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    // Add income button with form validation check
-                    InkWell(
-                      onTap: () async {
-                        if (_formKey.currentState!.validate()) {
-                          var date = incomeDateController.text;
-                          var incomeText = addIncomeController.text;
-                          int? income = int.tryParse(incomeText);
-
-                          try {
-                            // Await the insertion for reliability and speed perception
-                            await Provider.of<HomeProvider>(
-                              context,
-                              listen: false,
-                            ).addIncome(
-                              IncomeDataModel(date: date, income: income!),
-                            );
-
-                            Fluttertoast.showToast(
-                              msg: "Income added to wallet",
-                              toastLength: Toast.LENGTH_SHORT,
-                              gravity: ToastGravity.BOTTOM,
-                              backgroundColor: Colors.green,
-                              textColor: Colors.white,
-                              fontSize: 16.0,
-                            );
-
-                            // Clear controllers
-                            addIncomeController.clear();
-                            incomeDateController.clear();
-                            selectedDate = null;
-                            formattedDate = null;
-
-                            // Close bottom sheet
-                            Navigator.pop(context);
-                          } catch (e) {
-                            Fluttertoast.showToast(
-                              msg: "Error: $e",
-                              backgroundColor: Colors.red,
-                            );
-                          }
-                        }
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          vertical: 1.h,
-                          horizontal: 2.w,
-                        ),
-                        child: Container(
-                          height: MediaQuery.of(context).size.height * 0.06,
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Add Income',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  void _toggleFAB() {
+    setState(() {
+      _isFABOpen = !_isFABOpen;
+      if (_isFABOpen) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final homeProvider = Provider.of<HomeProvider>(context);
 
-    return Scaffold(
-      drawer: const MyNavigationDrawer(),
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: AppColors.primaryColor,
-        title: Text(
-          'Home Screen',
-          style: TextStyle(
-            fontSize: 19.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      floatingActionButton: SpeedDial(
-        animatedIcon: AnimatedIcons.add_event,
-        backgroundColor: AppColors.primaryColor,
-        foregroundColor: Colors.white,
-        overlayColor: Colors.white,
-        overlayOpacity: 0.5,
-        elevation: 20,
-        spacing: 10,
-        spaceBetweenChildren: 20,
-        children: [
-          SpeedDialChild(
-            backgroundColor: AppColors.color_red,
-            label: 'Add Expense',
-            elevation: 15,
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AllCategoriesScreen()),
-              );
-              if (mounted) {
-                Provider.of<HomeProvider>(
-                  context,
-                  listen: false,
-                ).fetchHomeData();
-              }
-            },
-            child: Icon(
-              Icons.credit_score_outlined,
-              color: Colors.white,
-              size: 3.h,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          drawer: const MyNavigationDrawer(),
+          appBar: _buildAppBar(),
+          body: RefreshIndicator(
+            onRefresh: () async => homeProvider.fetchHomeData(),
+            color: AppColors.accent,
+            backgroundColor: AppColors.surface,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 5.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 2.h),
+                    _buildDynamicHeroCard(homeProvider),
+                    SizedBox(height: 3.h),
+                    // Current Month Summary Card - only shown if data exists for the current month
+                    if (homeProvider.hasCurrentMonthData) ...[
+                      _buildCurrentMonthCard(homeProvider),
+                      SizedBox(height: 3.h),
+                    ],
+                    _buildQuickAnalytics(homeProvider),
+                    SizedBox(height: 4.h),
+                    _buildSectionHeader('Recent Transactions', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AllExpensesScreen(),
+                        ),
+                      );
+                    }),
+                    SizedBox(height: 1.5.h),
+                    _buildSmartTransactionList(homeProvider),
+                    SizedBox(height: 15.h),
+                  ],
+                ),
+              ),
             ),
           ),
-          SpeedDialChild(
-            backgroundColor: AppColors.buttonsColor,
-            label: 'Add Income',
-            elevation: 15,
-            onTap: () {
-              showIncomeBtmSht(context);
-            },
-            child: Icon(
-              Icons.account_balance_wallet,
+        ),
+        // Global Background Dimming
+        if (_isFABOpen)
+          GestureDetector(
+            onTap: _toggleFAB,
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        // Centralized FAB - Always rendered here, above everything
+        Positioned(right: 16, bottom: 16, child: _buildAnimatedSpeedDial()),
+      ],
+    );
+  }
+
+  Widget _buildAnimatedSpeedDial() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Add Income
+        _buildSpeedDialItem(
+          label: 'Add Income',
+          icon: Icons.account_balance_wallet_rounded,
+          color: const Color(0xFF00C2FF),
+          onTap: () {
+            _toggleFAB();
+            showAddIncomeDialog(
+              context: context,
+              onAdd: (model) async {
+                await Provider.of<HomeProvider>(
+                  context,
+                  listen: false,
+                ).addIncome(model);
+              },
+              successMessage: "Success! Income added",
+            );
+          },
+        ),
+        if (_isFABOpen) const SizedBox(height: 12),
+        // Add Expense
+        _buildSpeedDialItem(
+          label: 'Add Expense',
+          icon: Icons.credit_card_rounded,
+          color: const Color(0xFFFF4867),
+          onTap: () async {
+            _toggleFAB();
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AllCategoriesScreen()),
+            );
+            if (mounted) {
+              Provider.of<HomeProvider>(context, listen: false).fetchHomeData();
+            }
+          },
+        ),
+        if (_isFABOpen) const SizedBox(height: 16),
+        // Main Toggle Button
+        GestureDetector(
+          onTap: _toggleFAB,
+          child: Container(
+            height: 60,
+            width: 60,
+            decoration: BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accent.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: _isFABOpen
+                  ? const Icon(
+                      Icons.calendar_month_rounded,
+                      key: ValueKey('open'),
+                      color: Colors.white,
+                      size: 30,
+                    )
+                  : const Icon(
+                      Icons.add,
+                      key: ValueKey('closed'),
+                      color: Colors.white,
+                      size: 30,
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpeedDialItem({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return SizeTransition(
+      sizeFactor: _expandAnimation,
+      child: FadeTransition(
+        opacity: _expandAnimation,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Label Box
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 15.sp,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Squircle Icon Button
+              GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  height: 58, // Precise size to match image
+                  width: 58,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(
+                      18,
+                    ), // Squircle-like shape
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: AppColors.primaryColor,
+      elevation: 0,
+      centerTitle: true,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.grid_view_rounded,
               color: Colors.white,
-              size: 3.h,
+              size: 20,
+            ),
+          ),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+      title: Column(
+        children: [
+          Text(
+            'Smart Bachat',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const Text(
+            'Personal Finance Manager',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            height: MediaQuery.of(context).size.height * 0.28,
-            decoration: const BoxDecoration(
-              //color: Color(0xffE5E4E2),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(15),
-                bottomRight: Radius.circular(15),
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: Stack(
+            children: [
+              const Icon(
+                Icons.notifications_outlined,
+                color: Colors.white,
+                size: 26,
               ),
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: 2.w),
+      ],
+    );
+  }
+
+  Widget _buildDynamicHeroCard(HomeProvider provider) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accent,
+            AppColors.accent.withOpacity(0.85),
+            AppColors.primaryColor.withOpacity(0.9),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accent.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: -2,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(
+              Icons.account_balance_wallet_rounded,
+              size: 150,
+              color: Colors.white.withOpacity(0.12),
             ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(7.w),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 1.h),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    RoundedContainer(
-                      containerColor: AppColors.buttonsColor,
-                      containerIcon: Icons.account_balance_wallet,
-                      containerText: 'Income',
-                      containerValue: homeProvider.totalIncome,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Available Balance',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(height: 0.8.h),
+                        Text(
+                          'Rs ${AppUtils.formatCurrency(provider.balance)}',
+                          style: const TextStyle(
+                            fontSize: 26,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'PKR',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-
-                SizedBox(height: 1.h),
-                // Linear progress indicator
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 2.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2.w),
-                          child: LinearProgressIndicator(
-                            minHeight: 0.8.h,
-                            borderRadius: BorderRadius.circular(20),
-                            value: homeProvider.totalIncome == 0
-                                ? 0.0
-                                : ((homeProvider.totalIncome -
-                                              homeProvider.totalExpense) /
-                                          homeProvider.totalIncome)
-                                      .clamp(
-                                        0.0,
-                                        1.0,
-                                      ), // Example: 80% of budget used
-                            backgroundColor: Colors.grey[400],
-                            color: AppColors.color_green,
-                          ),
-                        ),
-                      ),
-
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2.w),
-                          child: LinearProgressIndicator(
-                            minHeight: 0.8.h,
-                            borderRadius: BorderRadius.circular(20),
-                            value: homeProvider.totalIncome == 0
-                                ? 0.0
-                                : (homeProvider.totalExpense /
-                                          homeProvider.totalIncome)
-                                      .clamp(
-                                        0.0,
-                                        1.0,
-                                      ), // Example: 80% of budget used
-                            backgroundColor: Colors.grey[400],
-                            color: AppColors.color_red,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
+                SizedBox(height: 4.h),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    RoundedContainer(
-                      containerColor: AppColors.color_green,
-                      containerIcon: Icons.fact_check_outlined,
-                      containerText: 'Balance',
-                      containerValue: homeProvider.balance,
+                    Expanded(
+                      child: _buildHeroStat(
+                        label: '${DateTime.now().year} Income',
+                        amount: provider.currentYearIncome,
+                        icon: Icons.arrow_downward_rounded,
+                        color: Colors.white,
+                      ),
                     ),
-                    SizedBox(width: 3.w),
-                    RoundedContainer(
-                      containerColor: AppColors.color_red,
-                      containerIcon: Icons.credit_score_rounded,
-                      containerText: 'Expenses',
-                      containerValue: homeProvider.totalExpense,
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.white.withOpacity(0.3),
+                    ),
+                    Expanded(
+                      child: _buildHeroStat(
+                        label: '${DateTime.now().year} Saving',
+                        amount: provider.currentYearBalance,
+                        icon: Icons.savings_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.white.withOpacity(0.3),
+                    ),
+                    Expanded(
+                      child: _buildHeroStat(
+                        label: '${DateTime.now().year} Expenses',
+                        amount: provider.currentYearExpense,
+                        icon: Icons.arrow_upward_rounded,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          SizedBox(height: 1.h),
-          Text(
-            'Recent Transactions',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-          ),
-
-          Expanded(
-            child: homeProvider.recentExpenses.isEmpty
-                ? Center(
-                    child: Text(
-                      'No data available.',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: homeProvider.recentExpenses.length,
-                    itemBuilder: (context, index) {
-                      final transaction = homeProvider.recentExpenses[index];
-                      return SlidableTransactionItem(
-                        transaction: transaction,
-                        index: index,
-                        onDelete: () async {
-                          _selectedId = transaction.id;
-                          showExpenseDelUpBtmSht();
-                        },
-                        onUpdate: () {
-                          _selectedId = transaction.id;
-                          _selectedName = transaction.name;
-                          _selectedDate = transaction.date;
-                          _selectedExpense = transaction.expense;
-                          showUpdateExpenseBtmSht(
-                            transaction.id!,
-                            transaction.name,
-                            transaction.date,
-                            transaction.expense,
-                          );
-                        },
-                      );
-                    },
+  Widget _buildHeroStat({
+    required String label,
+    required int amount,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 1.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 13),
+              SizedBox(width: 1.w),
+              Flexible(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 0.5.h),
+          Text(
+            'Rs ${AppUtils.formatCurrency(amount)}',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ],
       ),
     );
   }
+
+  Widget _buildCurrentMonthCard(HomeProvider provider) {
+    final now = DateTime.now();
+    final monthName = AppUtils.monthNames[now.month];
+    final year = now.year;
+    final saving = provider.currentMonthBalance;
+    final savingColor = saving >= 0
+        ? AppColors.incomeColor
+        : AppColors.expenseColor;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xffEEF2F5), // light cool grey
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.primaryColor.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with background color
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.calendar_today_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                    SizedBox(width: 3.w),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$monthName $year',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Current Month Summary',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: Colors.white.withOpacity(0.8),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'PKR',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.all(5.w),
+            child: Column(
+              children: [
+                // Income & Expense Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMonthStatItem(
+                        label: 'Income',
+                        amount: provider.currentMonthIncome,
+                        icon: Icons.arrow_downward_rounded,
+                        color: AppColors.incomeColor,
+                        bgColor: AppColors.incomeColor.withOpacity(0.1),
+                      ),
+                    ),
+                    SizedBox(width: 3.w),
+                    Container(
+                      width: 1,
+                      height: 50,
+                      color: Colors.black.withOpacity(0.05),
+                    ),
+                    SizedBox(width: 3.w),
+                    Expanded(
+                      child: _buildMonthStatItem(
+                        label: 'Expenses',
+                        amount: provider.currentMonthExpense,
+                        icon: Icons.arrow_upward_rounded,
+                        color: AppColors.expenseColor,
+                        bgColor: AppColors.expenseColor.withOpacity(0.1),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2.h),
+                // Savings Row
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 4.w,
+                    vertical: 1.2.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: savingColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            saving >= 0
+                                ? Icons.savings_rounded
+                                : Icons.warning_amber_rounded,
+                            color: savingColor,
+                            size: 20,
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            saving >= 0 ? 'This Month Saving' : 'Over Budget',
+                            style: TextStyle(
+                              fontSize: 13.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: savingColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Rs ${AppUtils.formatCurrency(saving.abs())}',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w900,
+                          color: savingColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthStatItem({
+    required String label,
+    required int amount,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        SizedBox(height: 1.h),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5.sp,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 0.3.h),
+        Text(
+          'Rs ${AppUtils.formatCurrency(amount)}',
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAnalytics(HomeProvider provider) {
+    final subtitle =
+        provider.usesCurrentMonthForAnalytics ? 'This Month' : 'Overall';
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildModernAnalysisCard(
+            title: 'Savings',
+            ratio: provider.savingsRatio,
+            color: AppColors.incomeColor,
+            subtitle: subtitle,
+          ),
+        ),
+        SizedBox(width: 4.w),
+        Expanded(
+          child: _buildModernAnalysisCard(
+            title: 'Spending',
+            ratio: provider.spendingRatio,
+            color: AppColors.expenseColor,
+            subtitle: subtitle,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernAnalysisCard({
+    required String title,
+    required double ratio,
+    required Color color,
+    required String subtitle,
+  }) {
+    int percentage = (ratio * 100).round().clamp(0, 100);
+    return Container(
+      padding: EdgeInsets.all(3.5.w),
+      decoration: BoxDecoration(
+        color: const Color(0xffEEF2F5), // light cool grey
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Icon(
+                Icons.more_horiz_rounded,
+                color: AppColors.textSecondary.withOpacity(0.5),
+                size: 18,
+              ),
+            ],
+          ),
+          SizedBox(height: 1.5.h),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                height: 50,
+                width: 50,
+                child: CircularProgressIndicator(
+                  value: ratio.clamp(0.0, 1.0),
+                  backgroundColor: color.withOpacity(0.1),
+                  color: color,
+                  strokeWidth: 5,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+              Text(
+                '$percentage%',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 1.5.h),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, VoidCallback onSeeAll) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 17.sp,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+            letterSpacing: 0.2,
+          ),
+        ),
+        TextButton(
+          onPressed: onSeeAll,
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(50, 30),
+          ),
+          child: Row(
+            children: [
+              Text(
+                'See All',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.accent,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSmartTransactionList(HomeProvider provider) {
+    if (provider.recentExpenses.isEmpty) {
+      return Container(
+        height: 150,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.textSecondary.withOpacity(0.3),
+                size: 40,
+              ),
+              SizedBox(height: 1.h),
+              Text(
+                'No activity recorded yet.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: provider.recentExpenses.length,
+      itemBuilder: (context, index) {
+        final transaction = provider.recentExpenses[index];
+        return Padding(
+          padding: EdgeInsets.only(bottom: 1.5.h),
+          child: SlidableTransactionItem(
+            transaction: transaction,
+            index: index,
+            onTap: () {
+              // Do nothing on tap as per user request
+            },
+            onDelete: () {
+              showConfirmationDialog(
+                context: context,
+                message: 'Do you really want to delete this record?',
+                onConfirm: () async {
+                  await Provider.of<HomeProvider>(
+                    context,
+                    listen: false,
+                  ).deleteExpense(transaction.id!);
+                  Fluttertoast.showToast(
+                    msg: "Record Deleted",
+                    backgroundColor: AppColors.expenseColor,
+                  );
+                },
+              );
+            },
+            onUpdate: () {
+              showConfirmationDialog(
+                context: context,
+                message: 'Do you want to edit this transaction?',
+                onConfirm: () async {
+                  showUpdateExpenseDialog(
+                    context: context,
+                    id: transaction.id!,
+                    categoryName: transaction.name,
+                    date: transaction.date,
+                    expense: transaction.expense,
+                    onUpdate: (id, model) async {
+                      await Provider.of<HomeProvider>(
+                        context,
+                        listen: false,
+                      ).updateExpense(id, model);
+                    },
+                    successMessage: 'Success! Record updated',
+                  );
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 }
+

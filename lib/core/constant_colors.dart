@@ -2,11 +2,23 @@ import 'package:flutter/material.dart';
 
 @immutable
 class AppColors {
-  static const primaryColor = Color(0xff27aae1);
-  static const secondaryColor = Color(0xff566D7E);
-  static const buttonsColor = Color(0xff1DC3F7);
-  static const color_green = Color(0xff00A86B);
-  static const color_red = Color(0xffFD3C4A);
+  // Reverting to the original Light Blue color scheme while keeping keys for UI compatibility
+  static const Color background = Color(0xffffffff);
+  static const Color surface = Color(0xfff5f5f5);
+  static const Color accent = Color(0xff27aae1); // Original Blue
+
+  static const Color primaryColor = Color(0xff27aae1);
+  static const Color secondaryColor = Color(0xff566D7E);
+  static const Color buttonsColor = Color(0xff1DC3F7);
+
+  static const Color incomeColor = Color(0xff00A86B);
+  static const Color expenseColor = Color(0xffFD3C4A);
+
+  static const Color textPrimary = Color(0xff000000);
+  static const Color textSecondary = Color(0xff566D7E);
+
+  static const Color color_green = incomeColor;
+  static const Color color_red = expenseColor;
 
   static const Map<String, Color> categoryColors = {
     'Groceries': Color(0xff27aae1),

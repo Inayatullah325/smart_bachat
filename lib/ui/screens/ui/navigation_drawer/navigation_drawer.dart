@@ -31,17 +31,14 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Drawer(
-      width: 65.w, // Further reduced width
+      width: MediaQuery.of(context).size.width / 2,
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Padding(
         padding: EdgeInsets.only(top: 2.h, bottom: 0.02.h),
         child: Container(
           decoration: const BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topRight: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+            borderRadius: BorderRadius.zero,
             gradient: LinearGradient(
               colors: [Colors.blue, Colors.lightBlueAccent],
               begin: Alignment.topLeft,
@@ -162,14 +159,6 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                       },
                     ),
                     _buildDrawerTile(
-                      icon: Icons.settings_outlined,
-                      title: 'Setting',
-                      onTap: () {
-                        Navigator.pop(context);
-                        // Add Settings navigation if exists
-                      },
-                    ),
-                    _buildDrawerTile(
                       icon: Icons.person_outline,
                       title: 'Profile',
                       onTap: () {
@@ -183,27 +172,6 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                       },
                     ),
 
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Divider(color: Colors.white24),
-                    ),
-
-                    // Backup
-                    _buildDrawerTile(
-                      icon: Icons.backup_outlined,
-                      title: 'Backup',
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                    // Import File
-                    _buildDrawerTile(
-                      icon: Icons.download_outlined,
-                      title: 'Import File',
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                    ),
                     // Logout
                     _buildDrawerTile(
                       icon: Icons.logout,
