@@ -214,4 +214,63 @@ class AuthProvider with ChangeNotifier {
     _imagePath = '';
     notifyListeners();
   }
+
+  Future<String?> verifyEmail(
+    String emailInput, {
+    required Function(String) onError,
+  }) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Try exact match first
+    String? uid = prefs.getString('uid_$emailInput');
+    String? legacyEmailMatches;
+
+    // Fallback: case-insensitive scan
+    if (uid == null) {
+      final allKeys = prefs.getKeys();
+      for (final key in allKeys) {
+        if (key.startsWith('uid_') &&
+            key.toLowerCase() == 'uid_${emailInput.toLowerCase()}') {
+          uid = prefs.getString(key);
+          break;
+        } else if (key.startsWith('password_') &&
+            !key.startsWith('password_uid_') &&
+            key.toLowerCase() == 'password_${emailInput.toLowerCase()}') {
+          legacyEmailMatches = key.substring(9); // remove 'password_'
+        }
+      }
+    }
+
+    if (uid == null && legacyEmailMatches == null) {
+      return null;
+    }
+
+    // Perform on-the-fly migration if it's a legacy account
+    if (uid == null && legacyEmailMatches != null) {
+      uid = DateTime.now().microsecondsSinceEpoch.toString();
+      await prefs.setString('uid_$legacyEmailMatches', uid);
+      await prefs.setString('email_$uid', legacyEmailMatches);
+
+      final oldPass = prefs.getString('password_$legacyEmailMatches');
+      if (oldPass != null) {
+        await prefs.setString('password_$uid', oldPass);
+      }
+
+      String? legacyName = prefs.getString('name_$legacyEmailMatches');
+      if (legacyName != null) await prefs.setString('name_$uid', legacyName);
+
+      String? legacyImage = prefs.getString('image_$legacyEmailMatches');
+      if (legacyImage != null) await prefs.setString('image_$uid', legacyImage);
+
+      await _db.updateUserEmailInDatabase(legacyEmailMatches, uid);
+    }
+
+    return uid;
+  }
+
+  Future<bool> updatePassword(String uid, String newPassword) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('password_$uid', newPassword);
+    return true;
+  }
 }

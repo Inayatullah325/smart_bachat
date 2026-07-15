@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_bachat/providers/auth_provider.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
-
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -19,7 +19,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isPasswordVisible = false;
 
   void _signUp() async {
-    if (_nameController.text.isNotEmpty && _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_nameController.text.isNotEmpty &&
+        _emailController.text.isNotEmpty &&
+        _passwordController.text.isNotEmpty) {
       final name = _nameController.text.trim();
       final email = _emailController.text.trim();
       final password = _passwordController.text;
@@ -43,8 +46,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Registration successful! Please login."),
+          SnackBar(
+            content: Text(l10n.registrationSuccess),
             backgroundColor: AppColors.color_green,
           ),
         );
@@ -52,9 +55,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } else {
       if (mounted) {
+        final l10nSnack = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please fill all fields."),
+          SnackBar(
+            content: Text(l10nSnack.fillAllFields),
             backgroundColor: AppColors.color_red,
           ),
         );
@@ -72,6 +76,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -103,7 +108,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       top: 10,
                       left: 10,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -112,7 +120,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Create Account',
+                            l10n.createAccount,
                             style: TextStyle(
                               fontSize: 26.sp,
                               fontWeight: FontWeight.bold,
@@ -121,10 +129,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           SizedBox(height: 1.h),
                           Text(
-                            'Sign up to get started!',
+                            l10n.signUpGetStarted,
                             style: TextStyle(
                               fontSize: 16.sp,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -134,9 +142,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
             ),
-            
+
             SizedBox(height: 4.h),
-            
+
             // Bottom Section (Form)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w),
@@ -146,49 +154,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   TextField(
                     controller: _nameController,
                     decoration: InputDecoration(
-                      labelText: 'Full Name',
-                      prefixIcon: const Icon(Icons.person_outline, color: AppColors.primaryColor),
+                      labelText: l10n.fullName,
+                      prefixIcon: const Icon(
+                        Icons.person_outline,
+                        color: AppColors.primaryColor,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
-                        borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryColor,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 3.h),
-                  
+
                   // Email Field
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primaryColor),
+                      labelText: l10n.email,
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: AppColors.primaryColor,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
-                        borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryColor,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 3.h),
-                  
+
                   // Password Field
                   TextField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
                     decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primaryColor),
+                      labelText: l10n.password,
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.primaryColor,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: AppColors.primaryColor,
                         ),
                         onPressed: () {
@@ -202,13 +227,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
-                        borderSide: const BorderSide(color: AppColors.primaryColor, width: 2),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryColor,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 5.h),
-                  
+
                   // Sign Up Button
                   SizedBox(
                     width: double.infinity,
@@ -223,7 +251,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         elevation: 5,
                       ),
                       child: Text(
-                        'SIGN UP',
+                        l10n.signUp,
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
@@ -232,23 +260,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: 4.h),
-                  
+
                   // Login Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Already have an account? ",
-                        style: TextStyle(fontSize: 16.sp, color: Colors.grey[700]),
+                        l10n.alreadyHaveAccount,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: Colors.grey[700],
+                        ),
                       ),
                       GestureDetector(
                         onTap: () {
                           Navigator.pop(context);
                         },
                         child: Text(
-                          "Login",
+                          l10n.login,
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,

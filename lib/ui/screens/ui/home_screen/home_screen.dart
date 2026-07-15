@@ -1,16 +1,19 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 import 'package:smart_bachat/providers/home_provider.dart';
+import 'package:smart_bachat/providers/settings_provider.dart';
 import 'package:smart_bachat/ui/components/transaction_item.dart';
 import 'package:smart_bachat/ui/screens/ui/all_categories_screen/all_categories_screen.dart';
 import 'package:smart_bachat/ui/screens/ui/all_expenses_screen/all_expenses_screen.dart';
 import 'package:smart_bachat/ui/screens/ui/navigation_drawer/navigation_drawer.dart';
 
 import 'package:smart_bachat/core/app_utils.dart';
+import 'package:smart_bachat/ui/screens/ui/notifications_screen/notifications_screen.dart';
 import 'package:smart_bachat/ui/components/dialogs/confirmation_dialog.dart';
 import 'package:smart_bachat/ui/components/dialogs/update_expense_dialog.dart';
 import 'package:smart_bachat/ui/components/dialogs/add_income_dialog.dart';
@@ -71,50 +74,70 @@ class _HomeScreenState extends State<HomeScreen>
           backgroundColor: AppColors.background,
           drawer: const MyNavigationDrawer(),
           appBar: _buildAppBar(),
-          body: RefreshIndicator(
-            onRefresh: () async => homeProvider.fetchHomeData(),
-            color: AppColors.accent,
-            backgroundColor: AppColors.surface,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 5.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 2.h),
-                    _buildDynamicHeroCard(homeProvider),
-                    SizedBox(height: 3.h),
-                    // Current Month Summary Card - only shown if data exists for the current month
-                    if (homeProvider.hasCurrentMonthData) ...[
-                      _buildCurrentMonthCard(homeProvider),
-                      SizedBox(height: 3.h),
-                    ],
-                    _buildQuickAnalytics(homeProvider),
-                    SizedBox(height: 4.h),
-                    _buildSectionHeader('Recent Transactions', () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AllExpensesScreen(),
-                        ),
-                      );
-                    }),
-                    SizedBox(height: 1.5.h),
-                    _buildSmartTransactionList(homeProvider),
-                    SizedBox(height: 15.h),
-                  ],
+          body: homeProvider.isLoading
+              ? Center(
+                  child: CircleAvatar(
+                    radius: 35,
+                    backgroundColor: AppColors.primaryColor.withValues(
+                      alpha: 0.12,
+                    ),
+                    child: const SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryColor,
+                        strokeWidth: 3,
+                      ),
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () async => homeProvider.fetchHomeData(),
+                  color: AppColors.accent,
+                  backgroundColor: AppColors.surface,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 5.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 2.h),
+                          _buildDynamicHeroCard(homeProvider),
+                          SizedBox(height: 3.h),
+                          // Current Month Summary Card - only shown if data exists for the current month
+                          if (homeProvider.hasCurrentMonthData) ...[
+                            _buildCurrentMonthCard(homeProvider),
+                            SizedBox(height: 3.h),
+                          ],
+                          _buildQuickAnalytics(homeProvider),
+                          SizedBox(height: 4.h),
+                          _buildSectionHeader(
+                            AppLocalizations.of(context)!.recentTransactions,
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AllExpensesScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          SizedBox(height: 1.5.h),
+                          _buildSmartTransactionList(homeProvider),
+                          SizedBox(height: 15.h),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
         // Global Background Dimming
         if (_isFABOpen)
           GestureDetector(
             onTap: _toggleFAB,
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               width: double.infinity,
               height: double.infinity,
             ),
@@ -132,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         // Add Income
         _buildSpeedDialItem(
-          label: 'Add Income',
+          label: AppLocalizations.of(context)!.addIncomeLabel,
           icon: Icons.account_balance_wallet_rounded,
           color: const Color(0xFF00C2FF),
           onTap: () {
@@ -145,14 +168,14 @@ class _HomeScreenState extends State<HomeScreen>
                   listen: false,
                 ).addIncome(model);
               },
-              successMessage: "Success! Income added",
+              successMessage: AppLocalizations.of(context)!.successIncomeAdded,
             );
           },
         ),
         if (_isFABOpen) const SizedBox(height: 12),
         // Add Expense
         _buildSpeedDialItem(
-          label: 'Add Expense',
+          label: AppLocalizations.of(context)!.addExpenseLabel,
           icon: Icons.credit_card_rounded,
           color: const Color(0xFFFF4867),
           onTap: () async {
@@ -178,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.accent.withOpacity(0.4),
+                  color: AppColors.accent.withValues(alpha: 0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -234,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen>
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -263,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ), // Squircle-like shape
                     boxShadow: [
                       BoxShadow(
-                        color: color.withOpacity(0.3),
+                        color: color.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -289,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen>
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -304,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen>
       title: Column(
         children: [
           Text(
-            'Smart Bachat',
+            AppLocalizations.of(context)!.appTitle,
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w800,
@@ -312,9 +335,9 @@ class _HomeScreenState extends State<HomeScreen>
               letterSpacing: 0.5,
             ),
           ),
-          const Text(
-            'Personal Finance Manager',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.personalFinanceManager,
+            style: const TextStyle(
               fontSize: 11,
               color: Colors.white70,
               fontWeight: FontWeight.w500,
@@ -324,7 +347,12 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       actions: [
         IconButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+          },
           icon: Stack(
             children: [
               const Icon(
@@ -353,6 +381,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildDynamicHeroCard(HomeProvider provider) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -361,14 +390,14 @@ class _HomeScreenState extends State<HomeScreen>
           end: Alignment.bottomRight,
           colors: [
             AppColors.accent,
-            AppColors.accent.withOpacity(0.85),
-            AppColors.primaryColor.withOpacity(0.9),
+            AppColors.accent.withValues(alpha: 0.85),
+            AppColors.primaryColor.withValues(alpha: 0.9),
           ],
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withOpacity(0.3),
+            color: AppColors.accent.withValues(alpha: 0.3),
             blurRadius: 20,
             spreadRadius: -2,
             offset: const Offset(0, 10),
@@ -383,7 +412,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: Icon(
               Icons.account_balance_wallet_rounded,
               size: 150,
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
             ),
           ),
           Padding(
@@ -398,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Available Balance',
+                          AppLocalizations.of(context)!.totalAvailableBalance,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white70,
@@ -408,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         SizedBox(height: 0.8.h),
                         Text(
-                          'Rs ${AppUtils.formatCurrency(provider.balance)}',
+                          '${settingsProvider.currencySymbol}${AppUtils.formatCurrency(provider.balance)}',
                           style: const TextStyle(
                             fontSize: 26,
                             color: Colors.white,
@@ -424,12 +453,12 @@ class _HomeScreenState extends State<HomeScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
-                        'PKR',
-                        style: TextStyle(
+                      child: Text(
+                        settingsProvider.currencyCode,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -443,7 +472,8 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Expanded(
                       child: _buildHeroStat(
-                        label: '${DateTime.now().year} Income',
+                        label:
+                            '${DateTime.now().year} ${AppLocalizations.of(context)!.yearIncome}',
                         amount: provider.currentYearIncome,
                         icon: Icons.arrow_downward_rounded,
                         color: Colors.white,
@@ -452,24 +482,29 @@ class _HomeScreenState extends State<HomeScreen>
                     Container(
                       width: 1,
                       height: 40,
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                     ),
                     Expanded(
                       child: _buildHeroStat(
-                        label: '${DateTime.now().year} Saving',
+                        label:
+                            '${DateTime.now().year} ${AppLocalizations.of(context)!.yearSaving}',
                         amount: provider.currentYearBalance,
                         icon: Icons.savings_rounded,
                         color: Colors.white,
+                        amountColor: provider.currentYearBalance < 0
+                            ? const Color(0xFFFF4867)
+                            : Colors.white,
                       ),
                     ),
                     Container(
                       width: 1,
                       height: 40,
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                     ),
                     Expanded(
                       child: _buildHeroStat(
-                        label: '${DateTime.now().year} Expenses',
+                        label:
+                            '${DateTime.now().year} ${AppLocalizations.of(context)!.yearExpenses}',
                         amount: provider.currentYearExpense,
                         icon: Icons.arrow_upward_rounded,
                         color: Colors.white,
@@ -490,7 +525,9 @@ class _HomeScreenState extends State<HomeScreen>
     required int amount,
     required IconData icon,
     required Color color,
+    Color? amountColor,
   }) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 1.w),
       child: Column(
@@ -517,10 +554,10 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           SizedBox(height: 0.5.h),
           Text(
-            'Rs ${AppUtils.formatCurrency(amount)}',
-            style: const TextStyle(
+            '${settingsProvider.currencySymbol}${AppUtils.formatCurrency(amount)}',
+            style: TextStyle(
               fontSize: 13,
-              color: Colors.white,
+              color: amountColor ?? Colors.white,
               fontWeight: FontWeight.bold,
             ),
             overflow: TextOverflow.ellipsis,
@@ -532,9 +569,13 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildCurrentMonthCard(HomeProvider provider) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
-    final monthName = AppUtils.monthNames[now.month];
-    final year = now.year;
+    final monthName = AppUtils.monthNameFromKey(
+      '${now.year}-${now.month.toString().padLeft(2, '0')}',
+      context: context,
+    );
     final saving = provider.currentMonthBalance;
     final savingColor = saving >= 0
         ? AppColors.incomeColor
@@ -545,10 +586,12 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: const Color(0xffEEF2F5), // light cool grey
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primaryColor.withOpacity(0.1)),
+        border: Border.all(
+          color: AppColors.primaryColor.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -575,7 +618,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -589,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '$monthName $year',
+                          monthName,
                           style: TextStyle(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w800,
@@ -597,10 +640,10 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
                         Text(
-                          'Current Month Summary',
+                          l10n.currentMonthSummary,
                           style: TextStyle(
                             fontSize: 11.sp,
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -614,11 +657,11 @@ class _HomeScreenState extends State<HomeScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'PKR',
+                    settingsProvider.currencyCode,
                     style: TextStyle(
                       fontSize: 11.sp,
                       color: Colors.white,
@@ -639,27 +682,27 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Expanded(
                       child: _buildMonthStatItem(
-                        label: 'Income',
+                        label: l10n.income,
                         amount: provider.currentMonthIncome,
                         icon: Icons.arrow_downward_rounded,
                         color: AppColors.incomeColor,
-                        bgColor: AppColors.incomeColor.withOpacity(0.1),
+                        bgColor: AppColors.incomeColor.withValues(alpha: 0.1),
                       ),
                     ),
                     SizedBox(width: 3.w),
                     Container(
                       width: 1,
                       height: 50,
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                     ),
                     SizedBox(width: 3.w),
                     Expanded(
                       child: _buildMonthStatItem(
-                        label: 'Expenses',
+                        label: l10n.expenses,
                         amount: provider.currentMonthExpense,
                         icon: Icons.arrow_upward_rounded,
                         color: AppColors.expenseColor,
-                        bgColor: AppColors.expenseColor.withOpacity(0.1),
+                        bgColor: AppColors.expenseColor.withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -673,7 +716,7 @@ class _HomeScreenState extends State<HomeScreen>
                     vertical: 1.2.h,
                   ),
                   decoration: BoxDecoration(
-                    color: savingColor.withOpacity(0.12),
+                    color: savingColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -690,7 +733,9 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           SizedBox(width: 2.w),
                           Text(
-                            saving >= 0 ? 'This Month Saving' : 'Over Budget',
+                            saving >= 0
+                                ? l10n.thisMonthSaving
+                                : l10n.overBudget,
                             style: TextStyle(
                               fontSize: 13.5.sp,
                               fontWeight: FontWeight.w800,
@@ -700,7 +745,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
                       Text(
-                        'Rs ${AppUtils.formatCurrency(saving.abs())}',
+                        '${settingsProvider.currencySymbol}${AppUtils.formatCurrency(saving.abs())}',
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w900,
@@ -725,6 +770,7 @@ class _HomeScreenState extends State<HomeScreen>
     required Color color,
     required Color bgColor,
   }) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -747,7 +793,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         SizedBox(height: 0.3.h),
         Text(
-          'Rs ${AppUtils.formatCurrency(amount)}',
+          '${settingsProvider.currencySymbol}${AppUtils.formatCurrency(amount)}',
           style: TextStyle(
             fontSize: 14.sp,
             color: AppColors.textPrimary,
@@ -759,14 +805,16 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildQuickAnalytics(HomeProvider provider) {
-    final subtitle =
-        provider.usesCurrentMonthForAnalytics ? 'This Month' : 'Overall';
+    final l10n = AppLocalizations.of(context)!;
+    final subtitle = provider.usesCurrentMonthForAnalytics
+        ? l10n.thisMonth
+        : l10n.overall;
 
     return Row(
       children: [
         Expanded(
           child: _buildModernAnalysisCard(
-            title: 'Savings',
+            title: l10n.quickAnalyticsSavings,
             ratio: provider.savingsRatio,
             color: AppColors.incomeColor,
             subtitle: subtitle,
@@ -775,7 +823,7 @@ class _HomeScreenState extends State<HomeScreen>
         SizedBox(width: 4.w),
         Expanded(
           child: _buildModernAnalysisCard(
-            title: 'Spending',
+            title: l10n.quickAnalyticsSpending,
             ratio: provider.spendingRatio,
             color: AppColors.expenseColor,
             subtitle: subtitle,
@@ -797,10 +845,10 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: const Color(0xffEEF2F5), // light cool grey
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -821,7 +869,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               Icon(
                 Icons.more_horiz_rounded,
-                color: AppColors.textSecondary.withOpacity(0.5),
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
                 size: 18,
               ),
             ],
@@ -835,7 +883,7 @@ class _HomeScreenState extends State<HomeScreen>
                 width: 50,
                 child: CircularProgressIndicator(
                   value: ratio.clamp(0.0, 1.0),
-                  backgroundColor: color.withOpacity(0.1),
+                  backgroundColor: color.withValues(alpha: 0.1),
                   color: color,
                   strokeWidth: 5,
                   strokeCap: StrokeCap.round,
@@ -887,7 +935,7 @@ class _HomeScreenState extends State<HomeScreen>
           child: Row(
             children: [
               Text(
-                'See All',
+                AppLocalizations.of(context)!.seeAll,
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: AppColors.accent,
@@ -913,7 +961,7 @@ class _HomeScreenState extends State<HomeScreen>
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
         ),
         child: Center(
           child: Column(
@@ -921,12 +969,12 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               Icon(
                 Icons.receipt_long_rounded,
-                color: AppColors.textSecondary.withOpacity(0.3),
+                color: AppColors.textSecondary.withValues(alpha: 0.3),
                 size: 40,
               ),
               SizedBox(height: 1.h),
               Text(
-                'No activity recorded yet.',
+                AppLocalizations.of(context)!.noActivityYet,
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
             ],
@@ -952,14 +1000,17 @@ class _HomeScreenState extends State<HomeScreen>
             onDelete: () {
               showConfirmationDialog(
                 context: context,
-                message: 'Do you really want to delete this record?',
+                message: AppLocalizations.of(context)!.deleteRecordConfirm,
                 onConfirm: () async {
+                  final recordDeletedMsg = AppLocalizations.of(
+                    context,
+                  )!.recordDeleted;
                   await Provider.of<HomeProvider>(
                     context,
                     listen: false,
                   ).deleteExpense(transaction.id!);
                   Fluttertoast.showToast(
-                    msg: "Record Deleted",
+                    msg: recordDeletedMsg,
                     backgroundColor: AppColors.expenseColor,
                   );
                 },
@@ -968,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen>
             onUpdate: () {
               showConfirmationDialog(
                 context: context,
-                message: 'Do you want to edit this transaction?',
+                message: AppLocalizations.of(context)!.editTransactionConfirm,
                 onConfirm: () async {
                   showUpdateExpenseDialog(
                     context: context,
@@ -982,7 +1033,7 @@ class _HomeScreenState extends State<HomeScreen>
                         listen: false,
                       ).updateExpense(id, model);
                     },
-                    successMessage: 'Success! Record updated',
+                    successMessage: AppLocalizations.of(context)!.recordUpdated,
                   );
                 },
               );
@@ -993,4 +1044,3 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 }
-

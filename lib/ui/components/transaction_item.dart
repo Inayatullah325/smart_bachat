@@ -1,9 +1,31 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/app_utils.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:smart_bachat/database_model_class/expense_data_model.dart';
 import 'package:smart_bachat/database_model_class/income_data_model.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_bachat/providers/settings_provider.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
+
+abstract class SlidableItemState {
+  void close();
+}
+
+class SlidableManager {
+  static SlidableItemState? activeItem;
+
+  static void setActive(SlidableItemState? state) {
+    if (activeItem != null && activeItem != state) {
+      activeItem!.close();
+    }
+    activeItem = state;
+  }
+
+  static void clear() {
+    activeItem = null;
+  }
+}
 
 class SlidableTransactionItem extends StatefulWidget {
   final ExpenseDataModel transaction;
@@ -26,12 +48,33 @@ class SlidableTransactionItem extends StatefulWidget {
       _SlidableTransactionItemState();
 }
 
-class _SlidableTransactionItemState extends State<SlidableTransactionItem> {
+class _SlidableTransactionItemState extends State<SlidableTransactionItem>
+    implements SlidableItemState {
   double _offset = 0.0;
+
+  @override
+  void close() {
+    if (mounted && _offset != 0.0) {
+      setState(() {
+        _offset = 0.0;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (SlidableManager.activeItem == this) {
+      SlidableManager.clear();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     Color categoryColor = AppColors.getCategoryColor(widget.transaction.name);
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final currencySymbol = settingsProvider.currencySymbol;
+    final isRtl = settingsProvider.currentLanguage.isRTL;
 
     return Stack(
       children: [
@@ -42,39 +85,72 @@ class _SlidableTransactionItemState extends State<SlidableTransactionItem> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildActionButton(
-                  Icons.edit_note_rounded,
-                  AppColors.accent,
-                  widget.onUpdate,
-                ),
-                _buildActionButton(
-                  Icons.delete_sweep_rounded,
-                  AppColors.expenseColor,
-                  widget.onDelete,
-                ),
-                SizedBox(width: 3.w),
-              ],
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                mainAxisAlignment: isRtl
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.end,
+                children: isRtl
+                    ? [
+                        SizedBox(width: 3.w),
+                        _buildActionButton(
+                          Icons.delete_sweep_rounded,
+                          AppColors.expenseColor,
+                          widget.onDelete,
+                        ),
+                        _buildActionButton(
+                          Icons.edit_note_rounded,
+                          AppColors.accent,
+                          widget.onUpdate,
+                        ),
+                      ]
+                    : [
+                        _buildActionButton(
+                          Icons.edit_note_rounded,
+                          AppColors.accent,
+                          widget.onUpdate,
+                        ),
+                        _buildActionButton(
+                          Icons.delete_sweep_rounded,
+                          AppColors.expenseColor,
+                          widget.onDelete,
+                        ),
+                        SizedBox(width: 3.w),
+                      ],
+              ),
             ),
           ),
         ),
         // Swipeable Container
         GestureDetector(
           onHorizontalDragUpdate: (details) {
+            SlidableManager.setActive(this);
             setState(() {
               _offset += details.delta.dx;
-              if (_offset > 0) _offset = 0;
-              if (_offset < -140) _offset = -140;
+              if (isRtl) {
+                if (_offset < 0) _offset = 0;
+                if (_offset > 140) _offset = 140;
+              } else {
+                if (_offset > 0) _offset = 0;
+                if (_offset < -140) _offset = -140;
+              }
             });
           },
           onHorizontalDragEnd: (details) {
             setState(() {
-              if (_offset < -70) {
-                _offset = -140;
+              if (isRtl) {
+                if (_offset > 70) {
+                  _offset = 140;
+                } else {
+                  _offset = 0;
+                }
               } else {
-                _offset = 0;
+                if (_offset < -70) {
+                  _offset = -140;
+                } else {
+                  _offset = 0;
+                }
               }
             });
           },
@@ -83,15 +159,15 @@ class _SlidableTransactionItemState extends State<SlidableTransactionItem> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.8.h),
               decoration: BoxDecoration(
-                color: const Color(0xffEEF2F5), // light cool grey
+                color: Colors.white, // white card on open
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -111,7 +187,7 @@ class _SlidableTransactionItemState extends State<SlidableTransactionItem> {
                       width: 12.w,
                       height: 12.w,
                       decoration: BoxDecoration(
-                        color: categoryColor.withOpacity(0.1),
+                        color: categoryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
@@ -126,7 +202,10 @@ class _SlidableTransactionItemState extends State<SlidableTransactionItem> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.transaction.name,
+                            AppUtils.getCategoryLocalizedName(
+                              widget.transaction.name,
+                              context,
+                            ),
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -150,7 +229,7 @@ class _SlidableTransactionItemState extends State<SlidableTransactionItem> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '- Rs ${widget.transaction.expense}',
+                          '- $currencySymbol${AppUtils.formatCurrency(widget.transaction.expense)}',
                           style: TextStyle(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w900,
@@ -209,12 +288,33 @@ class SlidableIncomeItem extends StatefulWidget {
   State<SlidableIncomeItem> createState() => _SlidableIncomeItemState();
 }
 
-class _SlidableIncomeItemState extends State<SlidableIncomeItem> {
+class _SlidableIncomeItemState extends State<SlidableIncomeItem>
+    implements SlidableItemState {
   double _offset = 0.0;
+
+  @override
+  void close() {
+    if (mounted && _offset != 0.0) {
+      setState(() {
+        _offset = 0.0;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (SlidableManager.activeItem == this) {
+      SlidableManager.clear();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     Color categoryColor = AppColors.incomeColor;
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final currencySymbol = settingsProvider.currencySymbol;
+    final isRtl = settingsProvider.currentLanguage.isRTL;
 
     return Stack(
       children: [
@@ -225,39 +325,72 @@ class _SlidableIncomeItemState extends State<SlidableIncomeItem> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildActionButton(
-                  Icons.edit_note_rounded,
-                  AppColors.accent,
-                  widget.onUpdate,
-                ),
-                _buildActionButton(
-                  Icons.delete_sweep_rounded,
-                  AppColors.expenseColor,
-                  widget.onDelete,
-                ),
-                SizedBox(width: 3.w),
-              ],
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                mainAxisAlignment: isRtl
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.end,
+                children: isRtl
+                    ? [
+                        SizedBox(width: 3.w),
+                        _buildActionButton(
+                          Icons.delete_sweep_rounded,
+                          AppColors.expenseColor,
+                          widget.onDelete,
+                        ),
+                        _buildActionButton(
+                          Icons.edit_note_rounded,
+                          AppColors.accent,
+                          widget.onUpdate,
+                        ),
+                      ]
+                    : [
+                        _buildActionButton(
+                          Icons.edit_note_rounded,
+                          AppColors.accent,
+                          widget.onUpdate,
+                        ),
+                        _buildActionButton(
+                          Icons.delete_sweep_rounded,
+                          AppColors.expenseColor,
+                          widget.onDelete,
+                        ),
+                        SizedBox(width: 3.w),
+                      ],
+              ),
             ),
           ),
         ),
         // Swipeable Container
         GestureDetector(
           onHorizontalDragUpdate: (details) {
+            SlidableManager.setActive(this);
             setState(() {
               _offset += details.delta.dx;
-              if (_offset > 0) _offset = 0;
-              if (_offset < -140) _offset = -140;
+              if (isRtl) {
+                if (_offset < 0) _offset = 0;
+                if (_offset > 140) _offset = 140;
+              } else {
+                if (_offset > 0) _offset = 0;
+                if (_offset < -140) _offset = -140;
+              }
             });
           },
           onHorizontalDragEnd: (details) {
             setState(() {
-              if (_offset < -70) {
-                _offset = -140;
+              if (isRtl) {
+                if (_offset > 70) {
+                  _offset = 140;
+                } else {
+                  _offset = 0;
+                }
               } else {
-                _offset = 0;
+                if (_offset < -70) {
+                  _offset = -140;
+                } else {
+                  _offset = 0;
+                }
               }
             });
           },
@@ -266,15 +399,15 @@ class _SlidableIncomeItemState extends State<SlidableIncomeItem> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.8.h),
               decoration: BoxDecoration(
-                color: const Color(0xffEEF2F5), // light cool grey
+                color: Colors.white, // white card on open
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -294,7 +427,7 @@ class _SlidableIncomeItemState extends State<SlidableIncomeItem> {
                       width: 12.w,
                       height: 12.w,
                       decoration: BoxDecoration(
-                        color: categoryColor.withOpacity(0.1),
+                        color: categoryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
@@ -309,7 +442,7 @@ class _SlidableIncomeItemState extends State<SlidableIncomeItem> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Income',
+                            AppLocalizations.of(context)!.income,
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -333,7 +466,7 @@ class _SlidableIncomeItemState extends State<SlidableIncomeItem> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '+ Rs ${widget.transaction.income}',
+                          '+ $currencySymbol${AppUtils.formatCurrency(widget.transaction.income ?? 0)}',
                           style: TextStyle(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w900,

@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/app_utils.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
+import 'package:smart_bachat/providers/settings_provider.dart';
 
 /// Shared accordion list for income/expense screens.
 /// Groups transactions by current month, this year, and previous years.
@@ -29,6 +32,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final grouped = AppUtils.groupByMonth(widget.items, widget.getDate);
     final now = DateTime.now();
     final currentKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
@@ -55,26 +59,29 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
     final List<Widget> children = [];
 
     if (currentMonthKeys.isNotEmpty) {
-      children.add(_sectionLabel('🌟 Current Month'));
+      children.add(_sectionLabel('🌟 ${l10n.currentMonth}'));
       for (final key in currentMonthKeys) {
         children.add(_monthAccordion(key, grouped[key]!, _monthTheme));
       }
     }
 
     if (currentYearKeys.isNotEmpty) {
-      children.add(_sectionLabel('📅 This Year (${now.year})'));
+      children.add(_sectionLabel('📅 ${l10n.thisYear} (${now.year})'));
       for (final key in currentYearKeys) {
         children.add(_monthAccordion(key, grouped[key]!, _monthTheme));
       }
     }
 
     if (prevYearsMap.isNotEmpty) {
-      children.add(_sectionLabel('🗂️ Previous Years'));
+      children.add(_sectionLabel('🗂️ ${l10n.prevYears}'));
       for (final year in sortedPrevYears) {
         final monthKeys = prevYearsMap[year]!;
         final yearTotal = monthKeys.fold<int>(0, (sum, key) {
           return sum +
-              grouped[key]!.fold<int>(0, (s, item) => s + widget.getAmount(item));
+              grouped[key]!.fold<int>(
+                0,
+                (s, item) => s + widget.getAmount(item),
+              );
         });
         children.add(_yearAccordion(year, monthKeys, grouped, yearTotal));
       }
@@ -112,7 +119,12 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
     Map<String, List<T>> grouped,
     int yearTotal,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final currencySymbol = settingsProvider.currencySymbol;
     final isExpanded = _expandedYears.contains(year);
+    final monthWord = monthKeys.length == 1 ? l10n.monthText : l10n.monthsText;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: EdgeInsets.only(bottom: 2.h),
@@ -121,7 +133,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xff566D7E).withOpacity(0.12),
+            color: const Color(0xff566D7E).withValues(alpha: 0.12),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -168,7 +180,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Year $year',
+                          '${l10n.yearText} $year',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -176,7 +188,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
                           ),
                         ),
                         Text(
-                          '${monthKeys.length} month${monthKeys.length > 1 ? 's' : ''}  •  Total: Rs ${AppUtils.formatCurrency(yearTotal)}',
+                          '${monthKeys.length} $monthWord  •  $currencySymbol${AppUtils.formatCurrency(yearTotal)}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -232,8 +244,15 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
     _MonthTheme theme, {
     bool compact = false,
   }) {
+    final l10n = AppLocalizations.of(context)!;
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final currencySymbol = settingsProvider.currencySymbol;
     final isExpanded = _expandedMonthKeys.contains(key);
-    final total = items.fold<int>(0, (sum, item) => sum + widget.getAmount(item));
+    final total = items.fold<int>(
+      0,
+      (sum, item) => sum + widget.getAmount(item),
+    );
+    final recordWord = items.length == 1 ? l10n.recordText : l10n.recordsText;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -243,7 +262,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: theme.accentColor.withOpacity(compact ? 0.1 : 0.12),
+            color: theme.accentColor.withValues(alpha: compact ? 0.1 : 0.12),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -290,7 +309,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppUtils.monthNameFromKey(key),
+                          AppUtils.monthNameFromKey(key, context: context),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -298,7 +317,7 @@ class _GroupedTransactionListState<T> extends State<GroupedTransactionList<T>> {
                           ),
                         ),
                         Text(
-                          '${items.length} record${items.length > 1 ? 's' : ''}  •  Rs ${AppUtils.formatCurrency(total)}',
+                          '${items.length} $recordWord  •  $currencySymbol${AppUtils.formatCurrency(total)}',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,

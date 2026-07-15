@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -9,6 +9,7 @@ import 'package:smart_bachat/ui/components/grouped_transaction_list.dart';
 import 'package:smart_bachat/ui/components/transaction_item.dart';
 import 'package:smart_bachat/ui/components/dialogs/confirmation_dialog.dart';
 import 'package:smart_bachat/ui/components/dialogs/update_income_dialog.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class IncomeScreen extends StatefulWidget {
   const IncomeScreen({super.key});
@@ -32,13 +33,15 @@ class _IncomeScreenState extends State<IncomeScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TransactionProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: AppColors.primaryColor,
         centerTitle: true,
         title: Text(
-          'All Income',
+          l10n.allIncomeTitle,
           style: TextStyle(
             fontSize: 19.sp,
             fontWeight: FontWeight.bold,
@@ -46,15 +49,45 @@ class _IncomeScreenState extends State<IncomeScreen> {
           ),
         ),
       ),
-      body: provider.incomes.isEmpty
+      body: provider.isLoadingIncomes
           ? Center(
-              child: Text(
-                'No income records yet.',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
+              child: CircleAvatar(
+                radius: 35,
+                backgroundColor: AppColors.primaryColor.withValues(alpha: 0.12),
+                child: const SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryColor,
+                    strokeWidth: 3,
+                  ),
                 ),
+              ),
+            )
+          : provider.incomes.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: AppColors.primaryColor.withValues(alpha: 0.12),
+                    child: const Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: AppColors.primaryColor,
+                      size: 38,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.noIncomeRecords,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             )
           : GroupedTransactionList<IncomeDataModel>(
@@ -69,14 +102,14 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   onDelete: () {
                     showConfirmationDialog(
                       context: context,
-                      message: 'Do you really want to delete this income?',
+                      message: l10n.deleteIncomeConfirm,
                       onConfirm: () async {
                         await Provider.of<TransactionProvider>(
                           context,
                           listen: false,
                         ).deleteIncome(item.id!);
                         Fluttertoast.showToast(
-                          msg: 'Income Deleted',
+                          msg: l10n.incomeDeleted,
                           backgroundColor: Colors.redAccent,
                         );
                       },
@@ -94,7 +127,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                           listen: false,
                         ).updateIncome(id, model);
                       },
-                      successMessage: 'Income updated successfully',
+                      successMessage: l10n.updatedSuccessfully,
                     );
                   },
                 );

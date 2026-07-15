@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:smart_bachat/core/constant_colors.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 /// A reusable confirmation dialog used across the app for delete/update confirmations.
 /// This replaces the duplicated dialog code that was in home_screen, all_expenses_screen,
@@ -19,13 +21,22 @@ Future<void> showConfirmationDialog({
   required BuildContext context,
   required String message,
   required Future<void> Function() onConfirm,
-  String title = 'Smart Bachat',
-  String confirmText = 'Yes',
-  String cancelText = 'No',
-  Color confirmColor = Colors.red,
-  Color cancelColor = Colors.green,
-  List<Color> gradientColors = const [Colors.blue, Colors.lightBlueAccent],
+  String? title,
+  String? confirmText,
+  String? cancelText,
+  Color? confirmColor,
+  Color? cancelColor,
+  List<Color>? gradientColors,
 }) {
+  final l10n = AppLocalizations.of(context)!;
+  final displayTitle = title ?? l10n.appTitle;
+  final displayConfirm = confirmText ?? l10n.yes;
+  final displayCancel = cancelText ?? l10n.no;
+  final displayConfirmColor = confirmColor ?? AppColors.expenseColor;
+  final displayCancelColor = cancelColor ?? AppColors.incomeColor;
+  final displayGradient =
+      gradientColors ?? [AppColors.primaryColor, AppColors.buttonsColor];
+
   return showDialog(
     context: context,
     builder: (context) => Dialog(
@@ -33,7 +44,7 @@ Future<void> showConfirmationDialog({
       child: Container(
         height: MediaQuery.of(context).size.height * 0.3,
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradientColors),
+          gradient: LinearGradient(colors: displayGradient),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -45,7 +56,7 @@ Future<void> showConfirmationDialog({
               child: Row(
                 children: [
                   Text(
-                    title,
+                    displayTitle,
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
@@ -87,12 +98,12 @@ Future<void> showConfirmationDialog({
                       height: MediaQuery.of(context).size.height * 0.05,
                       width: MediaQuery.of(context).size.width * 0.3,
                       decoration: BoxDecoration(
-                        color: cancelColor,
+                        color: displayCancelColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Center(
                         child: Text(
-                          cancelText,
+                          displayCancel,
                           style: TextStyle(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.bold,
@@ -114,12 +125,12 @@ Future<void> showConfirmationDialog({
                       height: MediaQuery.of(context).size.height * 0.05,
                       width: MediaQuery.of(context).size.width * 0.3,
                       decoration: BoxDecoration(
-                        color: confirmColor,
+                        color: displayConfirmColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Center(
                         child: Text(
-                          confirmText,
+                          displayConfirm,
                           style: TextStyle(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.bold,

@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:smart_bachat/providers/settings_provider.dart';
 import '../../../../core/constant_colors.dart';
 import '../../../../database_model_class/expense_data_model.dart';
 import 'package:smart_bachat/providers/transaction_provider.dart';
@@ -10,6 +11,7 @@ import 'package:smart_bachat/ui/components/transaction_item.dart';
 import 'package:smart_bachat/core/app_utils.dart';
 import 'package:smart_bachat/ui/components/dialogs/confirmation_dialog.dart';
 import 'package:smart_bachat/ui/components/dialogs/update_expense_dialog.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class AllExpensesScreen extends StatefulWidget {
   const AllExpensesScreen({super.key});
@@ -75,7 +77,13 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     Map<String, List<ExpenseDataModel>> grouped,
     int yearTotal,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final currencySymbol = Provider.of<SettingsProvider>(
+      context,
+    ).currencySymbol;
     final isExpanded = _expandedYears.contains(year);
+    final monthWord = monthKeys.length == 1 ? l10n.monthText : l10n.monthsText;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: EdgeInsets.only(bottom: 2.h),
@@ -84,7 +92,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xff566D7E).withOpacity(0.12),
+            color: const Color(0xff566D7E).withValues(alpha: 0.12),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -132,7 +140,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Year $year',
+                          '${l10n.yearText} $year',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -140,7 +148,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                           ),
                         ),
                         Text(
-                          '${monthKeys.length} month${monthKeys.length > 1 ? 's' : ''}  •  Total: Rs ${AppUtils.formatCurrency(yearTotal)}',
+                          '${monthKeys.length} $monthWord  •  $currencySymbol${AppUtils.formatCurrency(yearTotal)}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -196,8 +204,13 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     _MonthTheme theme, {
     bool compact = false,
   }) {
+    final l10n = AppLocalizations.of(context)!;
+    final currencySymbol = Provider.of<SettingsProvider>(
+      context,
+    ).currencySymbol;
     final isExpanded = _expandedMonthKeys.contains(key);
     final total = items.fold<int>(0, (s, e) => s + e.expense);
+    final recordWord = items.length == 1 ? l10n.recordText : l10n.recordsText;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -207,7 +220,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: theme.accentColor.withOpacity(0.12),
+            color: theme.accentColor.withValues(alpha: 0.12),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -255,7 +268,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppUtils.monthNameFromKey(key),
+                          AppUtils.monthNameFromKey(key, context: context),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -263,7 +276,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                           ),
                         ),
                         Text(
-                          '${items.length} record${items.length > 1 ? 's' : ''}  •  Rs ${AppUtils.formatCurrency(total)}',
+                          '${items.length} $recordWord  •  $currencySymbol${AppUtils.formatCurrency(total)}',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -335,6 +348,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
   );
 
   Widget _buildItemWidget(ExpenseDataModel transaction, int index) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(bottom: 1.h),
       child: SlidableTransactionItem(
@@ -344,23 +358,25 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
         onDelete: () {
           showConfirmationDialog(
             context: context,
-            message: 'Do you really want to delete this expense?',
+            message: l10n.deleteExpenseConfirm,
             onConfirm: () async {
               await Provider.of<TransactionProvider>(
                 context,
                 listen: false,
               ).deleteExpense(transaction.id!);
-              Fluttertoast.showToast(
-                msg: "Record Deleted",
-                backgroundColor: AppColors.color_red,
-              );
+              if (mounted) {
+                Fluttertoast.showToast(
+                  msg: l10n.recordDeleted,
+                  backgroundColor: AppColors.color_red,
+                );
+              }
             },
           );
         },
         onUpdate: () {
           showConfirmationDialog(
             context: context,
-            message: 'Do you want to edit this expense?',
+            message: l10n.editExpenseConfirm,
             onConfirm: () async {
               showUpdateExpenseDialog(
                 context: context,
@@ -374,7 +390,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
                     listen: false,
                   ).updateExpense(id, model);
                 },
-                successMessage: 'Expense updated successfully',
+                successMessage: l10n.updatedSuccessfully,
               );
             },
           );
@@ -386,12 +402,13 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          'All Expenses',
+          l10n.allExpensesTitle,
           style: TextStyle(
             fontSize: 19.sp,
             fontWeight: FontWeight.bold,
@@ -401,15 +418,45 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
         centerTitle: true,
         backgroundColor: AppColors.primaryColor,
       ),
-      body: transactionProvider.expenses.isEmpty
+      body: transactionProvider.isLoadingExpenses
           ? Center(
-              child: Text(
-                'No data available.',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
+              child: CircleAvatar(
+                radius: 35,
+                backgroundColor: AppColors.primaryColor.withValues(alpha: 0.12),
+                child: const SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryColor,
+                    strokeWidth: 3,
+                  ),
                 ),
+              ),
+            )
+          : transactionProvider.expenses.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: AppColors.primaryColor.withValues(alpha: 0.12),
+                    child: const Icon(
+                      Icons.credit_card_off_rounded,
+                      color: AppColors.primaryColor,
+                      size: 38,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.noData,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
               ),
             )
           : _buildExpenseList(transactionProvider.expenses),
@@ -417,6 +464,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
   }
 
   Widget _buildExpenseList(List<ExpenseDataModel> expenses) {
+    final l10n = AppLocalizations.of(context)!;
     final grouped = _groupByMonth(expenses);
     final now = DateTime.now();
     final currentKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
@@ -446,7 +494,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     if (currentMonthKeys.isNotEmpty) {
       widgets.add(
         _sectionLabel(
-          '🌟 Current Month',
+          '🌟 ${l10n.currentMonth}',
           const Color(0xff0E7BB0), // primary dark
           const Color(0xffE0F4FC), // primary light tint
         ),
@@ -460,7 +508,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     if (currentYearKeys.isNotEmpty) {
       widgets.add(
         _sectionLabel(
-          '📅 This Year (${now.year})',
+          '📅 ${l10n.thisYear} (${now.year})',
           const Color(0xff0E7BB0),
           const Color(0xffE0F4FC),
         ),
@@ -474,7 +522,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     if (prevYearsMap.isNotEmpty) {
       widgets.add(
         _sectionLabel(
-          '🗂️ Previous Years',
+          '🗂️ ${l10n.prevYears}',
           const Color(0xff0E7BB0),
           const Color(0xffE0F4FC),
         ),
@@ -494,6 +542,7 @@ class _AllExpensesScreenState extends State<AllExpensesScreen> {
     );
   }
 }
+
 class _MonthTheme {
   final Color headerBg;
   final Color textPrimary;
@@ -511,4 +560,3 @@ class _MonthTheme {
     required this.accentColor,
   });
 }
-

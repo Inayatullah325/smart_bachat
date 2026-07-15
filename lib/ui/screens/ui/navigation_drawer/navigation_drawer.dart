@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:smart_bachat/ui/components/alert_dialog.dart';
 import 'package:smart_bachat/ui/screens/ui/home_screen/home_screen.dart';
 import 'package:smart_bachat/ui/screens/ui/income_screen/income_screen.dart';
@@ -9,6 +10,9 @@ import 'package:smart_bachat/ui/screens/ui/reports_screen/reports_screen.dart';
 import 'package:smart_bachat/ui/screens/ui/profile_screen/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_bachat/providers/auth_provider.dart';
+
+import 'package:smart_bachat/ui/screens/ui/settings_screen/settings_screen.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class MyNavigationDrawer extends StatefulWidget {
   const MyNavigationDrawer({super.key});
@@ -29,9 +33,10 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final l10n = AppLocalizations.of(context);
 
     return Drawer(
-      width: MediaQuery.of(context).size.width / 2,
+      width: MediaQuery.of(context).size.width * 0.60,
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Padding(
@@ -40,7 +45,7 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
           decoration: const BoxDecoration(
             borderRadius: BorderRadius.zero,
             gradient: LinearGradient(
-              colors: [Colors.blue, Colors.lightBlueAccent],
+              colors: [AppColors.primaryColor, AppColors.buttonsColor],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -85,7 +90,11 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                     SizedBox(height: 2.h),
                     // Name
                     Text(
-                      authProvider.userName,
+                      authProvider.userName == 'User Name'
+                          ? (l10n?.userNameDefault ?? 'User Name')
+                          : (authProvider.userName == 'Loading...'
+                                ? (l10n?.loading ?? 'Loading...')
+                                : authProvider.userName),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 19.sp,
@@ -110,7 +119,7 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                   children: [
                     _buildDrawerTile(
                       icon: Icons.home_outlined,
-                      title: 'Home',
+                      title: l10n?.home ?? 'Home',
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.pushReplacement(
@@ -121,7 +130,7 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                     ),
                     _buildDrawerTile(
                       icon: Icons.account_balance_wallet_outlined,
-                      title: 'Income',
+                      title: l10n?.income ?? 'Income',
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -134,7 +143,7 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                     ),
                     _buildDrawerTile(
                       icon: Icons.credit_score_outlined,
-                      title: 'Expenses',
+                      title: l10n?.expenses ?? 'Expenses',
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -147,7 +156,7 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                     ),
                     _buildDrawerTile(
                       icon: Icons.bar_chart_outlined,
-                      title: 'Statistics',
+                      title: l10n?.reports ?? 'Statistics',
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -160,7 +169,7 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                     ),
                     _buildDrawerTile(
                       icon: Icons.person_outline,
-                      title: 'Profile',
+                      title: l10n?.profile ?? 'Profile',
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -171,11 +180,24 @@ class _MyNavigationDrawerState extends State<MyNavigationDrawer> {
                         );
                       },
                     ),
+                    _buildDrawerTile(
+                      icon: Icons.settings_outlined,
+                      title: l10n?.settings ?? 'Settings',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
                     // Logout
                     _buildDrawerTile(
                       icon: Icons.logout,
-                      title: 'Logout',
+                      title: l10n?.logout ?? 'Logout',
                       onTap: () {
                         Navigator.pop(context);
                         showDialog(

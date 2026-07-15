@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
@@ -6,6 +6,8 @@ import 'package:smart_bachat/ui/screens/ui/profile_screen/edit_profile_screen.da
 import 'package:provider/provider.dart';
 import 'package:smart_bachat/providers/auth_provider.dart';
 import 'package:smart_bachat/ui/components/alert_dialog.dart';
+import 'package:smart_bachat/ui/screens/ui/settings_screen/settings_screen.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -36,28 +39,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'My Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.myProfile,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.white),
             onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const EditProfileScreen(),
                 ),
               );
-              // If data was updated, reload it
               if (result == true) {
                 if (mounted) {
-                  Provider.of<AuthProvider>(
-                    context,
-                    listen: false,
-                  ).loadUserData();
+                  authProvider.loadUserData();
                 }
               }
             },
@@ -89,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     border: Border.all(color: Colors.white, width: 3),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         spreadRadius: 2,
                         blurRadius: 10,
                         offset: const Offset(0, 5),
@@ -105,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             height: 17.h,
                           )
                         : Container(
-                            color: AppColors.primaryColor.withOpacity(0.1),
+                            color: AppColors.primaryColor.withValues(alpha: 0.1),
                             child: Icon(
                               Icons.person,
                               size: 10.h,
@@ -116,7 +122,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  authProvider.userName,
+                  authProvider.userName == 'User Name'
+                      ? l10n.userNameDefault
+                      : (authProvider.userName == 'Loading...'
+                            ? l10n.loading
+                            : authProvider.userName),
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
@@ -128,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   authProvider.userEmail,
                   style: TextStyle(
                     fontSize: 15.sp,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -143,22 +153,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildProfileOption(
                     icon: Icons.settings,
-                    title: 'Settings',
-                    onTap: () {},
+                    title: l10n.settings,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildProfileOption(
                     icon: Icons.security,
-                    title: 'Security',
+                    title: l10n.security,
                     onTap: () {},
                   ),
                   _buildProfileOption(
                     icon: Icons.help_outline,
-                    title: 'Help & Support',
+                    title: l10n.helpSupport,
                     onTap: () {},
                   ),
                   _buildProfileOption(
                     icon: Icons.logout,
-                    title: 'Logout',
+                    title: l10n.logout,
                     onTap: () {
                       showDialog(
                         context: context,
@@ -190,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 2),
@@ -204,8 +221,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: EdgeInsets.all(2.w),
           decoration: BoxDecoration(
             color: isDestructive
-                ? Colors.red.withOpacity(0.1)
-                : AppColors.primaryColor.withOpacity(0.1),
+                ? Colors.red.withValues(alpha: 0.1)
+                : AppColors.primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(

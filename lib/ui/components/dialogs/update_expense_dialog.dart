@@ -1,27 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:smart_bachat/core/app_utils.dart';
 import 'package:smart_bachat/database_model_class/expense_data_model.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 /// A reusable update expense dialog used across the app.
-/// This replaces the duplicated update expense form code that was in
-/// home_screen and all_expenses_screen.
-///
-/// Usage:
-/// ```dart
-/// showUpdateExpenseDialog(
-///   context: context,
-///   id: transaction.id!,
-///   categoryName: transaction.name,
-///   date: transaction.date,
-///   expense: transaction.expense,
-///   onUpdate: (id, model) async {
-///     await provider.updateExpense(id, model);
-///   },
-/// );
-/// ```
 void showUpdateExpenseDialog({
   required BuildContext context,
   required int id,
@@ -29,7 +14,7 @@ void showUpdateExpenseDialog({
   required String date,
   required int expense,
   required Future<void> Function(int id, ExpenseDataModel model) onUpdate,
-  String successMessage = 'Updated successfully',
+  String? successMessage,
 }) {
   final updateExpenseController = TextEditingController(
     text: expense.toString(),
@@ -41,6 +26,8 @@ void showUpdateExpenseDialog({
   showDialog(
     context: context,
     builder: (BuildContext context) {
+      final l10n = AppLocalizations.of(context)!;
+      final msg = successMessage ?? l10n.updatedSuccessfully;
       return StatefulBuilder(
         builder: (context, setDialogState) {
           return Dialog(
@@ -53,7 +40,7 @@ void showUpdateExpenseDialog({
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 30,
                     offset: const Offset(0, 12),
                   ),
@@ -69,7 +56,7 @@ void showUpdateExpenseDialog({
                       // ── Title ──
                       Center(
                         child: Text(
-                          'Edit Expense',
+                          l10n.editExpense,
                           style: TextStyle(
                             fontSize: 22.sp,
                             fontWeight: FontWeight.bold,
@@ -82,7 +69,7 @@ void showUpdateExpenseDialog({
 
                       // ── Select Category ──
                       Text(
-                        'Select Category',
+                        l10n.selectCategory,
                         style: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w600,
@@ -126,7 +113,7 @@ void showUpdateExpenseDialog({
                                 ),
                                 SizedBox(width: 2.w),
                                 Text(
-                                  'Select category',
+                                  l10n.selectCategory,
                                   style: TextStyle(
                                     color: Colors.grey.shade400,
                                     fontSize: 14.sp,
@@ -145,7 +132,10 @@ void showUpdateExpenseDialog({
                                     ),
                                     SizedBox(width: 2.w),
                                     Text(
-                                      item['name'] as String,
+                                      AppUtils.getCategoryLocalizedName(
+                                        item['name'] as String,
+                                        context,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w600,
@@ -168,7 +158,10 @@ void showUpdateExpenseDialog({
                                     ),
                                     SizedBox(width: 2.w),
                                     Text(
-                                      item['name'] as String,
+                                      AppUtils.getCategoryLocalizedName(
+                                        item['name'] as String,
+                                        context,
+                                      ),
                                       style: TextStyle(fontSize: 14.sp),
                                     ),
                                   ],
@@ -180,7 +173,7 @@ void showUpdateExpenseDialog({
                               setDialogState(() {});
                             },
                             validator: (v) =>
-                                v == null ? 'Please select a category' : null,
+                                v == null ? l10n.pleaseSelectCategory : null,
                           ),
                         ),
                       ),
@@ -188,7 +181,7 @@ void showUpdateExpenseDialog({
 
                       // ── Amount ──
                       Text(
-                        'Amount',
+                        l10n.amount,
                         style: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w600,
@@ -226,11 +219,11 @@ void showUpdateExpenseDialog({
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter an amount';
+                              return l10n.pleaseEnterExpense;
                             }
                             if (int.tryParse(value) == null ||
                                 int.tryParse(value)! <= 0) {
-                              return 'Enter a valid positive number';
+                              return l10n.pleaseEnterPositiveNumber;
                             }
                             return null;
                           },
@@ -240,7 +233,7 @@ void showUpdateExpenseDialog({
 
                       // ── Date ──
                       Text(
-                        'Date',
+                        l10n.date,
                         style: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w600,
@@ -288,7 +281,7 @@ void showUpdateExpenseDialog({
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please select a date';
+                              return l10n.pleaseSelectDate;
                             }
                             return null;
                           },
@@ -307,7 +300,7 @@ void showUpdateExpenseDialog({
                               borderRadius: BorderRadius.circular(20),
                             ),
                             elevation: 4,
-                            shadowColor: AppColors.primaryColor.withOpacity(
+                            shadowColor: AppColors.primaryColor.withValues(alpha: 
                               0.4,
                             ),
                           ),
@@ -327,7 +320,7 @@ void showUpdateExpenseDialog({
                                 );
                                 if (context.mounted) Navigator.pop(context);
                                 Fluttertoast.showToast(
-                                  msg: successMessage,
+                                  msg: msg,
                                   backgroundColor: AppColors.primaryColor,
                                 );
                               } catch (e) {
@@ -336,7 +329,7 @@ void showUpdateExpenseDialog({
                             }
                           },
                           child: Text(
-                            'Update Expense',
+                            l10n.updateExpense,
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,

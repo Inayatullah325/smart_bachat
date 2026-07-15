@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:smart_bachat/core/app_utils.dart';
 import 'package:smart_bachat/database_model_class/income_data_model.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 /// Reusable update income dialog — same design as expense dialog.
 void showUpdateIncomeDialog({
@@ -12,7 +13,7 @@ void showUpdateIncomeDialog({
   required String date,
   required int income,
   required Future<void> Function(int id, IncomeDataModel model) onUpdate,
-  String successMessage = 'Updated successfully',
+  String? successMessage,
 }) {
   final updateIncomeController = TextEditingController(text: income.toString());
   final dateController = TextEditingController(text: date);
@@ -21,6 +22,8 @@ void showUpdateIncomeDialog({
   showDialog(
     context: context,
     builder: (BuildContext context) {
+      final l10n = AppLocalizations.of(context)!;
+      final msg = successMessage ?? l10n.updatedSuccessfully;
       return StatefulBuilder(
         builder: (context, setDialogState) {
           return Dialog(
@@ -33,7 +36,7 @@ void showUpdateIncomeDialog({
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -46,7 +49,7 @@ void showUpdateIncomeDialog({
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Edit Income',
+                        l10n.editIncome,
                         style: TextStyle(
                           fontSize: 20.sp,
                           fontWeight: FontWeight.bold,
@@ -58,7 +61,7 @@ void showUpdateIncomeDialog({
                         padding: EdgeInsets.all(3.w),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          color: AppColors.incomeColor.withOpacity(0.1),
+                          color: AppColors.incomeColor.withValues(alpha: 0.1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -70,7 +73,7 @@ void showUpdateIncomeDialog({
                             ),
                             SizedBox(width: 3.w),
                             Text(
-                              'Income Entry',
+                              l10n.incomeEntry,
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
@@ -85,7 +88,7 @@ void showUpdateIncomeDialog({
                         controller: dateController,
                         readOnly: true,
                         decoration: InputDecoration(
-                          labelText: 'Select Date',
+                          labelText: l10n.selectDate,
                           prefixIcon: const Icon(
                             Icons.date_range_outlined,
                             color: AppColors.primaryColor,
@@ -105,7 +108,7 @@ void showUpdateIncomeDialog({
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please select a date';
+                            return l10n.pleaseSelectDate;
                           }
                           return null;
                         },
@@ -125,7 +128,7 @@ void showUpdateIncomeDialog({
                         keyboardType: TextInputType.number,
                         controller: updateIncomeController,
                         decoration: InputDecoration(
-                          labelText: 'Enter income here',
+                          labelText: l10n.enterIncomeHere,
                           prefixIcon: const Icon(
                             Icons.payments_outlined,
                             color: AppColors.primaryColor,
@@ -145,11 +148,11 @@ void showUpdateIncomeDialog({
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a valid income amount';
+                            return l10n.pleaseEnterIncome;
                           }
                           if (int.tryParse(value) == null ||
                               int.tryParse(value)! <= 0) {
-                            return 'Please enter a valid positive number';
+                            return l10n.pleaseEnterPositiveNumber;
                           }
                           return null;
                         },
@@ -180,7 +183,7 @@ void showUpdateIncomeDialog({
                                 );
                                 if (context.mounted) Navigator.pop(context);
                                 Fluttertoast.showToast(
-                                  msg: successMessage,
+                                  msg: msg,
                                   toastLength: Toast.LENGTH_LONG,
                                   gravity: ToastGravity.TOP,
                                   backgroundColor: AppColors.primaryColor,
@@ -191,9 +194,9 @@ void showUpdateIncomeDialog({
                               }
                             }
                           },
-                          child: const Text(
-                            'Update Income',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.updateIncome,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

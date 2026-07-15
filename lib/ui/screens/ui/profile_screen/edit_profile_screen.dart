@@ -1,10 +1,11 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:smart_bachat/providers/auth_provider.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -30,9 +31,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _loadUserData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _emailController.text = authProvider.userEmail;
-      _nameController.text = authProvider.userName;
+      String name = authProvider.userName;
+      if (name == 'User Name' && l10n != null) {
+        name = l10n.userNameDefault;
+      } else if (name == 'Loading...' && l10n != null) {
+        name = l10n.loading;
+      }
+      _nameController.text = name;
       _imagePath = authProvider.imagePath;
     });
   }
@@ -55,6 +63,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _showImagePickerDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -68,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -78,7 +87,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Select Image Source',
+                  l10n.selectImageSource,
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -100,7 +109,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           Container(
                             padding: EdgeInsets.all(4.w),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryColor.withOpacity(0.12),
+                              color: AppColors.primaryColor.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -111,7 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           SizedBox(height: 1.h),
                           Text(
-                            'Gallery',
+                            l10n.gallery,
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w600,
@@ -131,7 +140,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           Container(
                             padding: EdgeInsets.all(4.w),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryColor.withOpacity(0.12),
+                              color: AppColors.primaryColor.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -142,7 +151,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           SizedBox(height: 1.h),
                           Text(
-                            'Camera',
+                            l10n.camera,
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w600,
@@ -162,11 +171,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveUserData() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_emailController.text.trim().isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Email cannot be empty"),
+          SnackBar(
+            content: Text(l10n.emailCannotBeEmpty),
             backgroundColor: AppColors.color_red,
           ),
         );
@@ -208,6 +218,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -217,9 +228,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.editProfile,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
@@ -253,7 +267,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 height: 18.h,
                               )
                             : Container(
-                                color: AppColors.primaryColor.withOpacity(0.1),
+                                color: AppColors.primaryColor.withValues(alpha: 0.1),
                                 child: Icon(
                                   Icons.person,
                                   size: 10.h,
@@ -280,13 +294,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               SizedBox(height: 5.h),
               _buildTextField(
-                label: 'Full Name',
+                label: l10n.fullName,
                 controller: _nameController,
                 icon: Icons.person_outline,
               ),
               SizedBox(height: 3.h),
               _buildTextField(
-                label: 'Email Address',
+                label: l10n.emailAddress,
                 controller: _emailController,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
@@ -303,10 +317,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     elevation: 5,
-                    shadowColor: AppColors.primaryColor.withOpacity(0.5),
+                    shadowColor: AppColors.primaryColor.withValues(alpha: 0.5),
                   ),
                   child: Text(
-                    'Save Changes',
+                    l10n.save,
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,

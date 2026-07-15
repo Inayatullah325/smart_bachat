@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 /// Shared utility functions used across the application.
 /// This file centralizes common logic that was previously duplicated
@@ -26,6 +27,16 @@ class AppUtils {
     'December',
   ];
 
+  static String getMonthLocalizedName(int month, BuildContext context) {
+    if (month < 1 || month > 12) return '';
+    try {
+      final locale = Localizations.localeOf(context).toString();
+      final date = DateTime(DateTime.now().year, month);
+      return DateFormat.MMMM(locale).format(date);
+    } catch (_) {}
+    return monthNames[month];
+  }
+
   // ─── Currency Formatting ───
   /// Formats an integer amount into a comma-separated string.
   /// Example: 1234567 → "1,234,567"
@@ -39,12 +50,22 @@ class AppUtils {
   // ─── Month Name from Key ───
   /// Converts a "yyyy-MM" key to a readable month name.
   /// Example: "2026-06" → "June 2026"
-  static String monthNameFromKey(String key) {
+  static String monthNameFromKey(String key, {BuildContext? context}) {
     final parts = key.split('-');
     if (parts.length != 2) return key;
     final month = int.tryParse(parts[1]) ?? 0;
-    final year = parts[0];
-    return month >= 1 && month <= 12 ? '${monthNames[month]} $year' : key;
+    final year = int.tryParse(parts[0]) ?? 0;
+    if (month >= 1 && month <= 12 && year > 0) {
+      if (context != null) {
+        try {
+          final locale = Localizations.localeOf(context).toString();
+          final date = DateTime(year, month);
+          return DateFormat.yMMMM(locale).format(date);
+        } catch (_) {}
+      }
+      return month >= 1 && month <= 12 ? '${monthNames[month]} $year' : key;
+    }
+    return key;
   }
 
   // ─── Transaction Grouping ───
@@ -223,5 +244,53 @@ class AppUtils {
       }
     }
     return Icons.more_horiz_rounded;
+  }
+
+  // ─── Category Localization ───
+  /// Maps an English category value (stored in DB) to its localized display name.
+  /// Falls back to the original English name if no translation is found.
+  static String getCategoryLocalizedName(String value, BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return value;
+    switch (value) {
+      case 'Groceries':
+        return l10n.catGroceries;
+      case 'Health':
+        return l10n.catHealth;
+      case 'Education':
+        return l10n.catEducation;
+      case 'Transport':
+        return l10n.catTransport;
+      case 'Bills':
+        return l10n.catBills;
+      case 'Rent':
+        return l10n.catRent;
+      case 'Salaries':
+        return l10n.catSalaries;
+      case 'Charity':
+        return l10n.catCharity;
+      case 'Shopping':
+        return l10n.catShopping;
+      case 'Maintenance':
+        return l10n.catMaintenance;
+      case 'Household':
+        return l10n.catHousehold;
+      case 'Pets':
+        return l10n.catPets;
+      case 'Sports':
+        return l10n.catSports;
+      case 'Entertainment':
+        return l10n.catEntertainment;
+      case 'Gifts':
+        return l10n.catGifts;
+      case 'Vacations':
+        return l10n.catVacations;
+      case 'Restaurant':
+        return l10n.catRestaurant;
+      case 'Others':
+        return l10n.catOthers;
+      default:
+        return value;
+    }
   }
 }

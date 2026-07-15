@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -6,6 +6,7 @@ import 'package:smart_bachat/core/app_utils.dart';
 import 'package:smart_bachat/core/constant_colors.dart';
 import 'package:smart_bachat/database_model_class/expense_data_model.dart';
 import 'package:smart_bachat/providers/transaction_provider.dart';
+import 'package:smart_bachat/l10n/app_localizations.dart';
 
 class AllCategoriesScreen extends StatefulWidget {
   const AllCategoriesScreen({super.key});
@@ -33,6 +34,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final filteredCategories = AppUtils.allCategoriesList
         .where(
           (cat) => cat['name'].toString().toLowerCase().contains(
@@ -45,9 +47,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       backgroundColor: const Color(0xffF2F3F5),
       appBar: AppBar(
         title: Text(
-          'Category Selection',
+          l10n.categorySelection,
           style: TextStyle(
-            fontSize: 19.sp, // Reduced font size to fit efficiently on one line
+            fontSize: 19.sp,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -67,7 +69,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               Container(
                 height: 5.5.h,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300], // Adjusted for light background
+                  color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: 2.w),
@@ -80,9 +82,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: 'Search categories...',
+                    hintText: l10n.searchCategories,
                     hintStyle: TextStyle(
-                      color: Colors.black54, // Adjusted for readability
+                      color: Colors.black54,
                       fontSize: 15.sp,
                     ),
                     border: InputBorder.none,
@@ -97,7 +99,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 child: filteredCategories.isEmpty
                     ? Center(
                         child: Text(
-                          'No categories found',
+                          l10n.noCategoriesFound,
                           style: TextStyle(
                             fontSize: 16.sp,
                             color: Colors.grey,
@@ -112,18 +114,28 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                               crossAxisCount: 3,
                               mainAxisSpacing: 12,
                               crossAxisSpacing: 12,
-                              childAspectRatio:
-                                  0.82, // Matches taller cards from image
+                              childAspectRatio: 0.82,
                             ),
                         itemBuilder: (context, int index) {
                           final item = filteredCategories[index];
                           final Color catColor = item['color'];
-                          final String catName = item['name'];
+                          final String catKey =
+                              item['name'] as String; // English DB key
+                          final String catDisplayName =
+                              AppUtils.getCategoryLocalizedName(
+                                catKey,
+                                context,
+                              );
                           final IconData catIcon = item['icon'];
 
                           return InkWell(
                             onTap: () {
-                              showExpenseDialog(context, catIcon, catName);
+                              showExpenseDialog(
+                                context,
+                                catIcon,
+                                catKey,
+                                catDisplayName,
+                              );
                             },
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
@@ -131,20 +143,20 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 gradient: LinearGradient(
                                   colors: [
-                                    catColor.withOpacity(0.4),
-                                    catColor.withOpacity(0.05),
+                                    catColor.withValues(alpha: 0.4),
+                                    catColor.withValues(alpha: 0.05),
                                     Colors.transparent,
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
                                 border: Border.all(
-                                  color: catColor.withOpacity(0.25),
+                                  color: catColor.withValues(alpha: 0.25),
                                   width: 1,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: catColor.withOpacity(0.05),
+                                    color: catColor.withValues(alpha: 0.05),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -158,7 +170,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                                     right: 0,
                                     child: Center(
                                       child: Text(
-                                        catName,
+                                        catDisplayName,
                                         style: TextStyle(
                                           color: Colors.black87,
                                           fontSize: 14.5.sp,
@@ -176,7 +188,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                                         color: catColor,
                                         shadows: [
                                           Shadow(
-                                            color: catColor.withOpacity(0.4),
+                                            color: catColor.withValues(alpha: 0.4),
                                             blurRadius: 15,
                                             offset: const Offset(0, 3),
                                           ),
@@ -189,7 +201,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                                     left: 2.w,
                                     right: 2.w,
                                     child: Text(
-                                      'Tap to select',
+                                      l10n.tapToSelect,
                                       style: TextStyle(
                                         color: Colors.black54,
                                         fontSize: 12.sp,
@@ -226,8 +238,10 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   void showExpenseDialog(
     BuildContext context,
     IconData icon,
-    String categoryName,
+    String categoryName, // English value saved to DB
+    String displayName, // Localized label shown in UI
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -241,7 +255,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -254,7 +268,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Add Expense',
+                      l10n.addExpense,
                       style: TextStyle(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
@@ -266,7 +280,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                       padding: EdgeInsets.all(3.w),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: AppColors.primaryColor.withOpacity(0.1),
+                        color: AppColors.primaryColor.withValues(alpha: 0.1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -274,7 +288,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                           Icon(icon, size: 4.h, color: AppColors.primaryColor),
                           SizedBox(width: 3.w),
                           Text(
-                            categoryName,
+                            displayName,
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
@@ -289,7 +303,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                       controller: dateController,
                       readOnly: true,
                       decoration: InputDecoration(
-                        labelText: 'Select Date',
+                        labelText: l10n.selectDate,
                         prefixIcon: const Icon(
                           Icons.date_range_outlined,
                           color: AppColors.primaryColor,
@@ -309,7 +323,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please select a date';
+                          return l10n.pleaseSelectDate;
                         }
                         return null;
                       },
@@ -320,7 +334,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                       keyboardType: TextInputType.number,
                       controller: addExpenseController,
                       decoration: InputDecoration(
-                        labelText: 'Enter expense here',
+                        labelText: l10n.enterExpenseHere,
                         prefixIcon: const Icon(
                           Icons.credit_score_outlined,
                           color: AppColors.primaryColor,
@@ -340,11 +354,11 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a valid expense amount';
+                          return l10n.pleaseEnterExpense;
                         }
                         if (int.tryParse(value) == null ||
                             int.tryParse(value)! <= 0) {
-                          return 'Please enter a valid positive number';
+                          return l10n.pleaseEnterPositiveNumber;
                         }
                         return null;
                       },
@@ -362,7 +376,8 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                         ),
                         onPressed: () {
                           if (_expenseFormKey.currentState!.validate()) {
-                            final expenseText = addExpenseController.text.trim();
+                            final expenseText = addExpenseController.text
+                                .trim();
                             final expense = int.tryParse(expenseText);
                             if (expense == null || _selectedDate == null) {
                               return;
@@ -384,7 +399,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                             _selectedDate = null;
 
                             Fluttertoast.showToast(
-                              msg: 'Expense Added',
+                              msg: l10n.expenseAdded,
                               toastLength: Toast.LENGTH_LONG,
                               gravity: ToastGravity.TOP,
                               backgroundColor: AppColors.primaryColor,
@@ -393,9 +408,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                             Navigator.pop(context);
                           }
                         },
-                        child: const Text(
-                          'Add Expense',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.addExpense,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -413,4 +428,3 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     );
   }
 }
-
